@@ -7,7 +7,7 @@ function create_network(
 
     agentcount = length(agents[:,1])
 
-    g = SimpleDiGraph(agentcount)
+    g = SimpleGraph(agentcount)
     pref_attach_list = collect(1:agentcount)
 
     for source in 1:agentcount
