@@ -32,6 +32,15 @@ function run!(
 	name::String="_"
 	)
 
+	agents = zeros(Int64, 100, 5)
+	for i in 1:100
+		agents[i,:] = rand(1:9,5)
+	end
+
+	simulation.init_state = (create_network(agents), agents)
+
+
+
 end
 
 function run_batch(
