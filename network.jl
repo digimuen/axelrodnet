@@ -5,7 +5,7 @@ function create_network(
     # this algorithm is modelled after the python networkx implementation:
     # https://github.com/networkx/networkx/blob/master/networkx/generators/random_graphs.py#L655
 
-    agentcount = length(agents)
+    agentcount = length(agents[:,1])
 
     g = SimpleDiGraph(agentcount)
     pref_attach_list = collect(1:agentcount)
