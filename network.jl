@@ -1,3 +1,5 @@
+using Random
+
 function create_network(
     agents::AbstractArray,
 
@@ -43,3 +45,49 @@ function create_network(
 
     return g
 end
+
+# function generateStochasticBlockModel(;rng=MersenneTwister(), agents::AbstractArray, cluster = 20)
+#     agent_count = length(agents)
+#     #rng = MersenneTwister(1)
+#     #agent_count = 4000
+#
+#     nsize = agent_count #Int(round(agent_count / cluster))
+#     cluster = div(nsize, 100)
+#     minclustersize = 7
+#     csize = rand(rng, cluster)
+#     csizesum = sum(csize)
+#     clustersizes = zeros(Int64, cluster)
+#     for i in 1:cluster
+#         clustersizes[i] = minclustersize +
+#         div((nsize-(minclustersize*cluster)) * csize[i],csizesum) + 1
+#
+#     end
+#     clustersizes[1] = max((clustersizes[1] + (nsize - sum(clustersizes))), minclustersize)
+#
+#     sigma = zeros(Real, cluster, cluster)
+#
+#     for i in 1:cluster
+#         for j in i:cluster
+#             if(i == j)
+#                 #sigma[i,j] = Int(round(min(max_edges * (1-rand(rng)*rand(rng)) + 1, clustersizes[i]))) -1
+#                 sigma[i,j] = clustersizes[i] * rand(rng, 0.01:0.0001:0.05)
+#
+#             else
+#                 #sigma[i,j] = 0.1*rand(rng) *rand(rng)* min(clustersizes[i], clustersizes[j])
+#                 if rand(rng) < 0.6
+#                     sigma[i,j] = 0
+#                 else
+#                     sigma[i,j] = rand(rng, 0:0.0001:0.01)
+#                 end
+#             end
+#
+#         end
+#     end
+#
+#     println(sigma)
+#     println(clustersizes)
+#     g = stochastic_block_model(sigma, clustersizes, seed = rand(rng, Int64))
+#     @info "created."
+#     pruneIsolatedVertices!(g)
+#     g
+# end
