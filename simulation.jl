@@ -40,13 +40,16 @@ function tick!(
 	acting_agent = agents[random_draw]
 	interaction_partner = agents[rand(neighbors(network,random_draw))]
 
-	similarity = sum([i == j for (i, j) in zip(acting_agent.cultureVector, interaction_partner.cultureVector)]) / length(acting_agent.cultureVector)
+	if !acting_agent.socialbot
 
-	if rand() < similarity && similarity != 1
-		assimilate!(agents, acting_agent, interaction_partner)
+		similarity = sum([i == j for (i, j) in zip(acting_agent.cultureVector, interaction_partner.cultureVector)]) / length(acting_agent.cultureVector)
+
+		if rand() < similarity && similarity != 1
+			assimilate!(agents, acting_agent, interaction_partner)
+		end
 	end
 
-	return network, agents
+	return (network, agents)
 end
 
 function run!(
@@ -56,24 +59,29 @@ function run!(
 	name::String="_"
 	)
 
-	agentcount = 200
+	agentcount = 2000
 
 	agents = Agent[]
-	for i in 1:agentcount
-		push!(agents, Agent(length(agents) + 1, rand(1:9,5)))
+	for i in 1:round(Int64, 0.98*agentcount)
+		push!(agents, Agent(rand(1:9,5)))
 	end
 
-	for i in 1:trunc(Int64, 0.05*agentcount)
-		push!(agents, Agent(length(agents) + 1, fill(7,5), true))
+	socialbotfrac = agentcount - length(agents)
+
+	for i in 1:socialbotfrac
+		push!(agents, Agent(fill(1,5), true))
 	end
 
 	network = barabasi_albert(length(agents),50)
 
-	for i in 1:200000
+	regioncount = Int64[]
+
+	for i in 1:1000
 		tick!(network,agents)
+		push!(regioncount,length(unique([agent.cultureVector for agent in agents])))
 	end
 
-	return agents
+	return agents, regioncount
 end
 
 function run_batch(
@@ -86,4 +94,23 @@ end
 
 test = run!()
 
-unique([agent.cultureVector for agent in test])
+for i in 1:5
+Matrix([agent.cultureVector for agent in test])
+Matrix()
+
+unique(t)
+
+using StatsBase
+first.(sort(collect(countmap(([agent.cultureVector for agent in test]))), by=last, rev=true))
+
+a = [1,2,3,4,5]
+b = [5,4,3,2,1]
+
+agents = [a,b]
+
+for j in 1:length(agents)
+
+
+for i in 1:5
+	print(a[i] == b[i])
+end
