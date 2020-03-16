@@ -1,13 +1,13 @@
 module Axelrodnet
 
-using LightGraphs
-using DataFrames
-using Random
+    using LightGraphs
+    using DataFrames
+    using Random
 
-include("agent.jl")
-# include("network.jl")
-include("simulation.jl")
+    include("agent.jl")
+    # include("network.jl")
+    include("simulation.jl")
 
-export run!
+    export run!
 
 end
