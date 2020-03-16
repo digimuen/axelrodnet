@@ -1,5 +1,3 @@
-using Random
-
 function create_network(
     agents::AbstractArray,
 
