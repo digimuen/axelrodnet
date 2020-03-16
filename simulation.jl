@@ -1,25 +1,3 @@
-using LightGraphs
-
-mutable struct simulation
-    name::String
-    batch_name::String
-    repnr::Int64
-    rng::MersenneTwister
-    init_state::Any
-    final_state::Any
-
-    function Simulation(; batch_name="")
-        new(
-			"",
-			batch_name,
-			0,
-			MersenneTwister(),
-            (nothing, nothing),
-            (nothing, nothing)
-        )
-    end
-end
-
 function assimilate!(agents, acting_agent, interaction_partner)
 	random_attr = rand(1:length(acting_agent.cultureVector))
 
@@ -52,65 +30,47 @@ function tick!(
 	return (network, agents)
 end
 
+using Random
+MersenneTwister(1234)
+
 function run!(
-	# simulation::Simulation=Simulation(),
-	batchrunnr::Int64=-1
 	;
-	name::String="_"
+	agentcount = 100,
+	n_iter = 1000,
+	socialbotfrac = 0.05,
+	m0 = 50,
+	rndseed = 1,
+	repcount = 100
 	)
 
-	agentcount = 2000
+	Random.seed!(MersenneTwister(rndseed))
 
-	agents = Agent[]
-	for i in 1:round(Int64, 0.98*agentcount)
-		push!(agents, Agent(rand(1:9,5)))
+	for i in 1:repcount
+
+		agents = Agent[]
+
+		for i in 1:round(Int64, (1-socialbotfrac)*agentcount)
+			push!(agents, Agent(rand(0:9,5)))
+		end
+
+		realagents = length(agents)
+
+		for i in 1:(agentcount - realagents)
+			push!(agents, Agent(fill(0,5), true))
+		end
+
+		network = barabasi_albert(length(agents),m0)
+
+		regioncount = Int64[]
+
+		for i in 1:n_iter
+			tick!(network,agents)
+			push!(regioncount,length(unique([agent.cultureVector for agent in agents])))
+		end
+
+		df = DataFrame(AgentID = 1:length(agents), Culture = [agent.cultureVector for agent in agents])
+
 	end
 
-	socialbotfrac = agentcount - length(agents)
-
-	for i in 1:socialbotfrac
-		push!(agents, Agent(fill(1,5), true))
-	end
-
-	network = barabasi_albert(length(agents),50)
-
-	regioncount = Int64[]
-
-	for i in 1:1000
-		tick!(network,agents)
-		push!(regioncount,length(unique([agent.cultureVector for agent in agents])))
-	end
-
-	return agents, regioncount
-end
-
-function run_batch(
-
-)
-
-end
-
-
-
-test = run!()
-
-for i in 1:5
-Matrix([agent.cultureVector for agent in test])
-Matrix()
-
-unique(t)
-
-using StatsBase
-first.(sort(collect(countmap(([agent.cultureVector for agent in test]))), by=last, rev=true))
-
-a = [1,2,3,4,5]
-b = [5,4,3,2,1]
-
-agents = [a,b]
-
-for j in 1:length(agents)
-
-
-for i in 1:5
-	print(a[i] == b[i])
+	return agents, regioncount, df
 end
