@@ -16,11 +16,17 @@ end
 
 function tick!(
 	network::AbstractGraph,
-	agents::AbstractArray
+	agents::AbstractArray,
+	completemixing::Bool
 )
 	random_draw = rand(1:length(agents))
 	acting_agent = agents[random_draw]
-	interaction_partner = agents[rand(neighbors(network,random_draw))]
+
+	if completemixing
+		interaction_partner = agents[rand(1:length(agents))]
+	else
+		interaction_partner = agents[rand(neighbors(network,random_draw))]
+	end
 
 	if !acting_agent.socialbot
 
@@ -49,7 +55,8 @@ function run!(
 	socialbotfrac::Float64=0.00,
 	m0::Int64=5,
 	rndseed::Int64=1,
-	repcount::Int64=1
+	repcount::Int64=1,
+	completemixing::Bool=false
 )
 
 	Random.seed!(MersenneTwister(rndseed))
@@ -76,7 +83,7 @@ function run!(
 		regioncount_list = Int64[]
 
 		for i in 1:n_iter
-			tick!(network,agents)
+			tick!(network,agents, completemixing)
 			push!(
 				regioncount_list,
 				length(unique([agent.cultureVector for agent in agents]))
