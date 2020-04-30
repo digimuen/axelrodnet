@@ -22,11 +22,8 @@ function tick!(
 	random_draw = rand(1:length(agents))
 	acting_agent = agents[random_draw]
 
-	if completemixing
-		interaction_partner = agents[rand(1:length(agents))]
-	else
-		interaction_partner = agents[rand(neighbors(network,random_draw))]
-	end
+	interaction_partner = agents[rand(neighbors(network,random_draw))]
+
 
 	if !acting_agent.socialbot
 
@@ -56,7 +53,7 @@ function run!(
 	m0::Int64=5,
 	rndseed::Int64=1,
 	repcount::Int64=1,
-	completemixing::Bool=false
+	nettopology::Int64=1
 )
 
 	Random.seed!(MersenneTwister(rndseed))
@@ -78,19 +75,31 @@ function run!(
 			push!(agents, Agent(fill(0, 5), true))
 		end
 
-		network = barabasi_albert(length(agents),m0)
+		if nettopology == 1
+			sqrt_agents = ceil(sqrt(length(agents)))
+			network = grid([sqrt_agents,sqrt_agents])
+		elseif nettopology == 2
+			network = barabasi_albert(sqrt_agents ^ 2,m0)
+		else
+			network = complete_graph(sqrt_agents ^ 2)
+		end
 
-		regioncount_list = Int64[]
+		# regioncount_list = Int64[]
+		state = Tuple{AbstractGraph, Array{Agent, 1}}[]
 
 		for i in 1:n_iter
 			tick!(network,agents, completemixing)
-			push!(
-				regioncount_list,
-				length(unique([agent.cultureVector for agent in agents]))
-			)
+			# push!(
+			# 	regioncount_list,
+			# 	length(unique([agent.cultureVector for agent in agents]))
+			# )
+
+			if i % ceil(n_iter / 20) == 0
+			end
+
 		end
 
-		regioncount = DataFrame(RegionCount = [regioncount_list])
+		# regioncount = DataFrame(RegionCount = [regioncount_list])
 
 		append!(
 			df,
