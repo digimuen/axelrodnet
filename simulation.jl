@@ -16,8 +16,7 @@ end
 
 function tick!(
 	network::AbstractGraph,
-	agents::AbstractArray,
-	completemixing::Bool
+	agents::AbstractArray
 )
 	random_draw = rand(1:length(agents))
 	acting_agent = agents[random_draw]
@@ -61,59 +60,64 @@ function run!(
 	regioncounts = DataFrame(RegionCount = Any[])
 	df = DataFrame(RepNr = Int64[], AgentID = Int64[], Culture = Any[])
 
-	for rep in 1:repcount
+	sqrtable_agentcount = (ceil(sqrt(agentcount))) ^2
 
-		agents = Agent[]
+	# for rep in 1:repcount
 
-		for i in 1:round(Int64, (1-socialbotfrac)*agentcount)
-			push!(agents, Agent(rand(0:9, 5)))
+	agents = Agent[]
+
+	for i in 1:round(Int64, (1-socialbotfrac)*sqrtable_agentcount)
+		push!(agents, Agent(rand(0:9, 5)))
+	end
+
+	realagents = length(agents)
+
+	for i in 1:(sqrtable_agentcount - realagents)
+		push!(agents, Agent(fill(0, 5), true))
+	end
+
+	if nettopology == 1
+		network = grid([trunc(Int64,sqrt(sqrtable_agentcount)),trunc(Int64,sqrt(sqrtable_agentcount))])
+	elseif nettopology == 2
+		network = barabasi_albert(sqrtable_agentcount,m0)
+	else
+		network = complete_graph(sqrtable_agentcount)
+	end
+
+	# regioncount_list = Int64[]
+	state = Tuple{AbstractGraph, Array{Agent, 1}}[]
+
+	for i in 1:n_iter
+		tick!(network,agents)
+		# push!(
+		# 	regioncount_list,
+		# 	length(unique([agent.cultureVector for agent in agents]))
+		# )
+
+		if i % ceil(n_iter / 20) == 0
 		end
-
-		realagents = length(agents)
-
-		for i in 1:(agentcount - realagents)
-			push!(agents, Agent(fill(0, 5), true))
-		end
-
-		if nettopology == 1
-			sqrt_agents = ceil(sqrt(length(agents)))
-			network = grid([sqrt_agents,sqrt_agents])
-		elseif nettopology == 2
-			network = barabasi_albert(sqrt_agents ^ 2,m0)
-		else
-			network = complete_graph(sqrt_agents ^ 2)
-		end
-
-		# regioncount_list = Int64[]
-		state = Tuple{AbstractGraph, Array{Agent, 1}}[]
-
-		for i in 1:n_iter
-			tick!(network,agents, completemixing)
-			# push!(
-			# 	regioncount_list,
-			# 	length(unique([agent.cultureVector for agent in agents]))
-			# )
-
-			if i % ceil(n_iter / 20) == 0
-			end
-
-		end
-
-		# regioncount = DataFrame(RegionCount = [regioncount_list])
-
-		append!(
-			df,
-			DataFrame(
-				RepNr = rep,
-				AgentID = 1:length(agents),
-				Culture = [agent.cultureVector for agent in agents]
-			)
-		)
-
-		append!(regioncounts, regioncount)
 
 	end
 
-	return regioncounts, df
+		# regioncount = DataFrame(RegionCount = [regioncount_list])
+
+	# append!(
+	# 	df,
+	# 	DataFrame(
+	# 		RepNr = rep,
+	# 		AgentID = 1:length(agents),
+	# 		Culture = [agent.cultureVector for agent in agents]
+	# 	)
+	# )
+
+		# append!(regioncounts, regioncount)
+
+	# end
+
+	return (
+		# df, 
+		network,
+		agents
+	)
 
 end
