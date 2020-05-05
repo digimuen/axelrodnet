@@ -1,6 +1,7 @@
 module Axelrodnet
 
     using LightGraphs
+    using SimpleWeightedGraphs
     using DataFrames
     using Random
 
