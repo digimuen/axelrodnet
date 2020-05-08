@@ -6,7 +6,6 @@ module Axelrodnet
     using Random
 
     include("agent.jl")
-    # include("network.jl")
     include("simulation.jl")
 
     export run!
