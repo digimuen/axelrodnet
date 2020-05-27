@@ -16,12 +16,16 @@ function assimilate!(
 
 end
 
-function create_network(nettopology::Int64, agentcount::Int64, m0::Int64)
+function create_network(nettopology::Int64, agentcount::Int64, networkprops::Dict)
 	if nettopology == 1
 		network = grid([Int(sqrt(agentcount)), Int(sqrt(agentcount))])
 	elseif nettopology == 2
-		network = barabasi_albert(agentcount, m0)
+		network = erdos_renyi(agentcount, networkprops["p"])
 	elseif nettopology == 3
+		network = watts_strogatz(agentcount, networkprops["k"], networkprops["beta"])
+	elseif nettopology == 4
+		network = barabasi_albert(agentcount, networkprops["m0"])
+	elseif nettopology == 5
 		network = complete_graph(agentcount)
 	else
 		network = grid([Int(sqrt(agentcount)), Int(sqrt(agentcount))])
@@ -31,8 +35,10 @@ function create_network(nettopology::Int64, agentcount::Int64, m0::Int64)
 			defaulted to grid
 			choose one of the following to specify network topology:
 			- nettopology=1 (grid graph)
-			- nettopology=2 (barabasi-albert graph)
-			- nettopology=3 (complete graph)
+			- nettopology=2 (erdos-renyi graph)
+			- nettopology=3 (watts-strogatz graph)
+			- nettopology=4 (barabasi-albert graph)
+			- nettopology=5 (complete graph)
 			"""
 		)
 	end
@@ -73,11 +79,11 @@ function run!(
 	;
 	sqrt_agentcount::Int64=10,
 	n_iter::Int64=1000,
+	nettopology::Int64=1,
+	networkprops::Dict=Dict(),
 	socialbotfrac::Float64=0.00,
-	m0::Int64=5,
 	rndseed::Int64=1,
 	repcount::Int64=1,
-	nettopology::Int64=1,
 	export_every_n::Int64=100
 )
 
@@ -108,7 +114,7 @@ function run!(
 			push!(agents, Agent(fill(0, 5), true))
 		end
 
-		network = create_network(nettopology, agentcount, m0)
+		network = create_network(nettopology, agentcount, networkprops)
 		networks[rep] = network
 
 		state = Tuple{AbstractGraph, Array{Agent, 1}}[]
