@@ -18,7 +18,19 @@ end
 
 function create_network(nettopology::Int64, agentcount::Int64, networkprops::Dict)
 	if nettopology == 1
-		network = grid([Int(sqrt(agentcount)), Int(sqrt(agentcount))])
+		try
+			height = Int(networkprops["grid_height"])
+			width = Int(agentcount / height)
+			network = grid([height, width])
+		catch
+			print(
+				"""
+				No/Faulty grid height provided
+				defaulting to grid with dimensions [agentcount, 1]
+				"""
+			)
+			network = grid(Int64[agentcount, 1])
+		end
 	elseif nettopology == 2
 		network = erdos_renyi(agentcount, networkprops["p"])
 	elseif nettopology == 3
@@ -28,11 +40,17 @@ function create_network(nettopology::Int64, agentcount::Int64, networkprops::Dic
 	elseif nettopology == 5
 		network = complete_graph(agentcount)
 	else
-		network = grid([Int(sqrt(agentcount)), Int(sqrt(agentcount))])
+		try
+			height = Int(networkprops["grid_height"])
+			width = Int(agentcount / height)
+			network = grid([height, width])
+		catch
+			network = grid(Int64[agentcount, 1])
+		end
 		print(
 			"""
 			irregular input for nettopology
-			defaulted to grid
+			defaulting to grid
 			choose one of the following to specify network topology:
 			- nettopology=1 (grid graph)
 			- nettopology=2 (erdos-renyi graph)
@@ -77,7 +95,7 @@ end
 
 function run!(
 	;
-	sqrt_agentcount::Int64=10,
+	agentcount::Int64=100,
 	n_iter::Int64=1000,
 	nettopology::Int64=1,
 	networkprops::Dict=Dict(),
@@ -88,8 +106,6 @@ function run!(
 )
 
 	Random.seed!(MersenneTwister(rndseed))
-
-	agentcount = sqrt_agentcount^2
 
 	networks = Dict{Int64, AbstractGraph}()
 	data = Dict{Int64, DataFrame}()
@@ -141,5 +157,43 @@ function run!(
 	end  # end rep
 
 	return (data, networks)
+
+end
+
+function export_experiment(experiment)
+
+    # create data directory
+    if !("data" in readdir())
+        mkdir("data")
+    end
+
+    # export graphs to edge list format
+    for key in keys(experiment[2])
+        if !("graphs" in readdir("data"))
+            mkdir(joinpath("data", "graphs"))
+        end
+        savegraph(
+            joinpath("data", "graphs", "rep_" * string(key) * ".gml"),
+            experiment[2][key],
+            GMLFormat()
+        )
+    end
+
+    # unpack culture vector for data exchange
+    function reshape_df!(df)
+        df["Culture"] = [join(c) for c in df["Culture"]]
+        return df
+    end
+    for key in keys(experiment[1])
+        reshape_df!(experiment[1][key])
+    end
+
+    # export data
+    for key in keys(experiment[1])
+        if !("agents" in readdir("data"))
+            mkdir(joinpath("data", "agents"))
+        end
+        Feather.write(joinpath("data", "agents", "rep_" * string(key) * ".feather"), experiment[1][key])
+    end
 
 end
