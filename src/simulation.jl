@@ -64,8 +64,8 @@ function create_network(nettopology::Int64, agentcount::Int64, networkprops::Dic
 end
 
 function tick!(
-	network::AbstractGraph,
-	agents::AbstractArray
+	agents::AbstractArray,
+	network::AbstractGraph
 )
 
 	random_draw = rand(1:length(agents))
@@ -93,7 +93,7 @@ function tick!(
 	return (network, agents)
 end
 
-function run!(
+function run(
 	;
 	agentcount::Int64=100,
 	n_iter::Int64=1000,
@@ -115,7 +115,7 @@ function run!(
 		df = DataFrame(
 			TickNr = Int64[],
 			AgentID = Int64[],
-			Culture = Any[]
+			CultureTmp = Any[]
 		)
 
 		agents = Agent[]
@@ -136,14 +136,14 @@ function run!(
 		state = Tuple{AbstractGraph, Array{Agent, 1}}[]
 
 		for i in 1:n_iter
-			tick!(network, agents)
+			tick!(agents, network)
 			if i % export_every_n == 0
 				append!(
 					df,
 					DataFrame(
 						TickNr = i,
 						AgentID = 1:length(agents),
-						Culture = [agent.cultureVector for agent in agents]
+						CultureTmp = [agent.cultureVector for agent in agents]
 					)
 				)
 			end
@@ -160,20 +160,20 @@ function run!(
 
 end
 
-function export_experiment(experiment)
+function export_experiment(experiment, path::String="")
 
     # create data directory
-    if !("data" in readdir())
-        mkdir("data")
+    if !("data" in readdir(path))
+        mkdir(joinpath(path, "data"))
     end
 
     # export graphs to edge list format
     for key in keys(experiment[2])
-        if !("graphs" in readdir("data"))
-            mkdir(joinpath("data", "graphs"))
+        if !("graphs" in readdir(joinpath(path, "data")))
+            mkdir(joinpath(path, "data", "graphs"))
         end
         savegraph(
-            joinpath("data", "graphs", "rep_" * string(key) * ".gml"),
+            joinpath(path, "data", "graphs", "rep_" * string(key) * ".gml"),
             experiment[2][key],
             GMLFormat()
         )
@@ -181,7 +181,8 @@ function export_experiment(experiment)
 
     # unpack culture vector for data exchange
     function reshape_df!(df)
-        df["Culture"] = [join(c) for c in df["Culture"]]
+        df["Culture"] = [join(c) for c in df["CultureTmp"]]
+		select!(df, DataFrames.Not(:CultureTmp))
         return df
     end
     for key in keys(experiment[1])
@@ -190,10 +191,10 @@ function export_experiment(experiment)
 
     # export data
     for key in keys(experiment[1])
-        if !("agents" in readdir("data"))
-            mkdir(joinpath("data", "agents"))
+        if !("agents" in readdir(joinpath(path, "data")))
+            mkdir(joinpath(path, "data", "agents"))
         end
-        Feather.write(joinpath("data", "agents", "rep_" * string(key) * ".feather"), experiment[1][key])
+        Feather.write(joinpath(path, "data", "agents", "rep_" * string(key) * ".feather"), experiment[1][key])
     end
 
 end
