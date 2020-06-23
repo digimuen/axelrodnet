@@ -31,7 +31,7 @@ function run_experiment(;
         export_every_n=export_every_n
     )
     if export_experiment
-        path = joinpath("experiment", experiment_name)
+        path = joinpath("experiments", experiment_name)
         Axelrodnet.export_experiment(experiment, path)
     end
     return experiment
