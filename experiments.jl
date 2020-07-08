@@ -50,7 +50,8 @@ for sbf in 0.00:0.01:0.2
         rndseed=1,
         repcount=3,
         export_every_n=10_000,
-        export_experiment=true
+        export_experiment=true,
+        aggregated=true
     )
 end
 
@@ -66,7 +67,8 @@ for sbf in 0.00:0.01:0.2, p in 0.3:0.1:0.8
         rndseed=1,
         repcount=3,
         export_every_n=10_000,
-        export_experiment=true
+        export_experiment=true,
+        aggregated=true
     )
 end
 
@@ -82,7 +84,8 @@ for sbf in 0.00:0.01:0.2, beta in 0.1:0.1:0.5
         rndseed=1,
         repcount=3,
         export_every_n=10_000,
-        export_experiment=true
+        export_experiment=true,
+        aggregated=true
     )
 end
 
@@ -98,6 +101,7 @@ for sbf in 0.00:0.01:0.2
         rndseed=1,
         repcount=3,
         export_every_n=10_000,
-        export_experiment=true
+        export_experiment=true,
+        aggregated=true
     )
 end
