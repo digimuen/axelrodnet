@@ -160,7 +160,7 @@ function run(
 
 end
 
-function export_experiment(experiment, path::String="")
+function export_experiment(experiment, path::String="", aggregated::Bool=true)
 
     # create data directory
     if !("data" in readdir(path))
@@ -189,12 +189,40 @@ function export_experiment(experiment, path::String="")
         reshape_df!(experiment[1][key])
     end
 
-    # export data
-    for key in keys(experiment[1])
-        if !("agents" in readdir(joinpath(path, "data")))
-            mkdir(joinpath(path, "data", "agents"))
-        end
-        Feather.write(joinpath(path, "data", "agents", "rep_" * string(key) * ".feather"), experiment[1][key])
-    end
+	if aggregated
+		agg_df = DataFrame(
+			Rep = Int64[],
+			Size = Int64[],
+			Culture = String[]
+		)
+		for key in keys(experiment[1])
+			df = experiment[1][key]
+			finaltick = filter(:TickNr => ==(maximum(df["TickNr"])), df)
+			rep = key
+			unique_cultures = unique(finaltick["Culture"])
+			for c in unique_cultures
+				push!(
+					agg_df,
+					(
+						rep,
+						sum([culture == c for culture in finaltick["Culture"]]),
+						c
+					)
+				)
+			end
+		end
+		if !("agents" in readdir(joinpath(path, "data")))
+			mkdir(joinpath(path, "data", "agents"))
+		end
+		Feather.write(joinpath(path, "data", "agents", "adata.feather"), agg_df)
+	else
+	    # export entire data
+	    for key in keys(experiment[1])
+	        if !("agents" in readdir(joinpath(path, "data")))
+	            mkdir(joinpath(path, "data", "agents"))
+	        end
+	        Feather.write(joinpath(path, "data", "agents", "rep_" * string(key) * ".feather"), experiment[1][key])
+	    end
+	end
 
 end
