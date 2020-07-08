@@ -12,7 +12,8 @@ function run_experiment(;
     rndseed::Int64,
     repcount::Int64,
     export_every_n::Int64,
-    export_experiment::Bool
+    export_experiment::Bool,
+    aggregated::Bool
 )
     if !("experiments" in readdir())
         mkdir("experiments")
@@ -32,11 +33,10 @@ function run_experiment(;
     )
     if export_experiment
         path = joinpath("experiments", experiment_name)
-        Axelrodnet.export_experiment(experiment, path)
+        Axelrodnet.export_experiment(experiment, path, aggregated)
     end
     return experiment
 end
-
 
 # grid graph
 for sbf in 0.00:0.01:0.2
