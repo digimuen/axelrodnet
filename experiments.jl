@@ -33,10 +33,30 @@ function run_experiment(;
     )
     if export_experiment
         path = joinpath("experiments", experiment_name)
-        Axelrodnet.export_experiment(experiment, path, aggregated)
+        Axelrodnet.export_experiment(
+            experiment=experiment,
+            path=path,
+            socialbotfrac=socialbotfrac,
+            networkprops=networkprops,
+            aggregated=aggregated
+        )
     end
     return experiment
 end
+
+run_experiment(
+    experiment_name="grid_sbf" * string(trunc(Int, 0.1 * 100)),
+    agentcount=10_000,
+    n_iter=1_000_000,
+    nettopology=1,
+    networkprops=Dict("grid_height" => 100),
+    socialbotfrac=0.1,
+    rndseed=1,
+    repcount=3,
+    export_every_n=10_000,
+    export_experiment=true,
+    aggregated=true
+)
 
 # grid graph
 for sbf in 0.00:0.01:0.2
@@ -56,21 +76,21 @@ for sbf in 0.00:0.01:0.2
 end
 
 # Erdos-Renyi graph
-for sbf in 0.00:0.01:0.2, p in 0.3:0.1:0.8
-    run_experiment(
-        experiment_name="erdosrenyi_sbf" * string(trunc(Int, sbf * 100)) * "_p" * string(trunc(Int, p * 10)),
-        agentcount=10_000,
-        n_iter=1_000_000,
-        nettopology=2,
-        networkprops=Dict("p" => p),
-        socialbotfrac=sbf,
-        rndseed=1,
-        repcount=3,
-        export_every_n=10_000,
-        export_experiment=true,
-        aggregated=true
-    )
-end
+# for sbf in 0.00:0.01:0.2, p in 0.3:0.1:0.8
+#     run_experiment(
+#         experiment_name="erdosrenyi_sbf" * string(trunc(Int, sbf * 100)) * "_p" * string(trunc(Int, p * 10)),
+#         agentcount=10_000,
+#         n_iter=1_000_000,
+#         nettopology=2,
+#         networkprops=Dict("p" => p),
+#         socialbotfrac=sbf,
+#         rndseed=1,
+#         repcount=3,
+#         export_every_n=10_000,
+#         export_experiment=true,
+#         aggregated=true
+#     )
+# end
 
 # Watts-Strogatz graph
 for sbf in 0.00:0.01:0.2, beta in 0.1:0.1:0.5
