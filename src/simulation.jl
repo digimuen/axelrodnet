@@ -160,7 +160,13 @@ function run(
 
 end
 
-function export_experiment(experiment, path::String="", aggregated::Bool=true)
+function export_experiment(;
+	experiment,
+	path::String="",
+	socialbotfrac::Float64=0.0,
+	networkprops::Dict=Dict(),
+	aggregated::Bool=true
+)
 
     # create data directory
     if !("data" in readdir(path))
@@ -173,15 +179,15 @@ function export_experiment(experiment, path::String="", aggregated::Bool=true)
             mkdir(joinpath(path, "data", "graphs"))
         end
         savegraph(
-            joinpath(path, "data", "graphs", "rep_" * string(key) * ".gml"),
+            joinpath(path, "data", "graphs", "rep_" * string(key) * ".txt"),
             experiment[2][key],
-            GMLFormat()
+            GraphIO.EdgeList.EdgeListFormat()
         )
     end
 
     # unpack culture vector for data exchange
     function reshape_df!(df)
-        df["Culture"] = [join(c) for c in df["CultureTmp"]]
+        df[!, "Culture"] = [join(c) for c in df[!, "CultureTmp"]]
 		select!(df, DataFrames.Not(:CultureTmp))
         return df
     end
@@ -197,19 +203,23 @@ function export_experiment(experiment, path::String="", aggregated::Bool=true)
 		)
 		for key in keys(experiment[1])
 			df = experiment[1][key]
-			finaltick = filter(:TickNr => ==(maximum(df["TickNr"])), df)
+			finaltick = filter(:TickNr => ==(maximum(df[!, "TickNr"])), df)
 			rep = key
-			unique_cultures = unique(finaltick["Culture"])
+			unique_cultures = unique(finaltick[!, "Culture"])
 			for c in unique_cultures
 				push!(
 					agg_df,
 					(
 						rep,
-						sum([culture == c for culture in finaltick["Culture"]]),
+						sum([culture == c for culture in finaltick[!, "Culture"]]),
 						c
 					)
 				)
 			end
+		end
+		agg_df[!, "SocialBotFrac"] .= socialbotfrac
+		for k in keys(networkprops)
+			agg_df[!, k] .= networkprops[k]
 		end
 		if !("agents" in readdir(joinpath(path, "data")))
 			mkdir(joinpath(path, "data", "agents"))
