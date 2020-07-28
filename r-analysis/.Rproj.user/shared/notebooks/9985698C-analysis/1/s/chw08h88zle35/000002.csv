@@ -1,0 +1,7 @@
+"0",""
+"0","df %>% "
+"0","  filter(Rep == 1, SocialBotFrac == 0.15) %>% "
+"0","  group_by(Size) %>% "
+"0","  summarise(c = n())"
+"2","`summarise()` ungrouping output (override with `.groups` argument)
+"
