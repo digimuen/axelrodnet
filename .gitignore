@@ -25,3 +25,4 @@ Manifest.toml
 
 # Other files/folder to ignore
 experiments/
+r-analysis/data/
