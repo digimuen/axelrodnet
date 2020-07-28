@@ -112,21 +112,15 @@ function run(
 
 	for rep in 1:repcount
 
-		df = DataFrame(
-			TickNr = Int64[],
-			AgentID = Int64[],
-			CultureTmp = Any[]
-		)
-
 		agents = Agent[]
-
-		for i in 1:round(Int64, (1 - socialbotfrac) * agentcount)
+		realagentlimit = round(Int64, (1 - socialbotfrac) * agentcount)
+		for i in 1:realagentlimit
 			push!(agents, Agent(rand(0:9, 5)))
 		end
 
-		realagents = length(agents)
+		socialbotlimit = agentcount - realagentlimit
 
-		for i in 1:(agentcount - realagents)
+		for i in 1:socialbotlimit
 			push!(agents, Agent(fill(0, 5), true))
 		end
 
@@ -135,6 +129,12 @@ function run(
 
 		state = Tuple{AbstractGraph, Array{Agent, 1}}[]
 
+		df = DataFrame(
+			TickNr = 0,
+			AgentID = 1:length(deepcopy(agents)),
+			CultureTmp = [agent.cultureVector for agent in deepcopy(agents)]
+		)
+
 		for i in 1:n_iter
 			tick!(agents, network)
 			if i % export_every_n == 0
@@ -142,8 +142,8 @@ function run(
 					df,
 					DataFrame(
 						TickNr = i,
-						AgentID = 1:length(agents),
-						CultureTmp = [agent.cultureVector for agent in agents]
+						AgentID = 1:length(deepcopy(agents)),
+						CultureTmp = [agent.cultureVector for agent in deepcopy(agents)]
 					)
 				)
 			end

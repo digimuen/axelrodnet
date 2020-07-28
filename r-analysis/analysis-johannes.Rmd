@@ -11,31 +11,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(arrow)
+source("helpers.R")
 
 ```
+
 
 ```{r read-ba-data}
 
-df <- tibble(
-  Rep=integer(0), 
-  Size=integer(0), 
-  Culture=character(0), 
-  SocialBotFrac=double(0),
-  m0=integer(0)
-)
-
-ba_runs <- grep("barabasialbert", list.files("data"), value = TRUE) 
-
-for (run in ba_runs) {
-  df %>% 
-    rbind(
-      arrow::read_feather(
-        file.path("data", run, "data", "agents", "adata.feather")
-      )
-    ) -> df
-}
+grid_data <- read_adata("grid", "data")
+ws_data <- read_adata("wattsstrogatz", "data")
+ba_data <- read_adata("barabasialbert", "data")
 
 ```
+
+
+
 
 
 
