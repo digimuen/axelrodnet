@@ -11,6 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(arrow)
+library(igraph)
+library(stringdist)
 source("helpers.R")
 
 ```
@@ -25,6 +27,55 @@ ba_data <- read_adata("barabasialbert", "data")
 ```
 
 
+
+```{r region-analysis}
+
+test_data <- arrow::read_feather(file.path("data", "TESTRUN", "data", "agents", "adata.feather"))
+
+test_data %>%
+  filter(Rep == 1) %>% 
+  filter(TickNr == 1000000) %>%  
+  group_by(Culture) %>% 
+  summarize(count = n()) %>% 
+  ungroup() -> test_region_count
+
+read_delim(
+  file.path("data", "TESTRUN", "data", "graphs", "rep_1.txt"), 
+  delim = ",",
+  col_names = FALSE
+) %>% 
+  as.matrix() %>% 
+  graph_from_edgelist(directed = FALSE) -> graph_test_0
+
+test_data %>%
+  filter(Rep == 1) %>% 
+  filter(TickNr == 1000000) %>% 
+  filter(SocialBotFrac == 0.00) -> tmp
+
+rownames(tmp) <- tmp$AgentID
+
+edgelist <- E(graph_test_0)
+delete_list <- c()
+for (idx in 1:length(edgelist)) {
+  nodes <- ends(graph_test_0, edgelist[idx])
+  a <- tmp$Culture[nodes[1]]
+  b <- tmp$Culture[nodes[2]]
+  if (stringdist(a, b, method = "hamming") == 5) {
+    delete_list <- delete_list %>% append(idx)
+  }
+}
+
+graph_test_0 %>% 
+  delete.edges(delete_list) -> graph_test_0_filtered
+
+comps <- components(graph_test_0_filtered)
+
+test_region_count %>% dim() 
+comps$no
+
+plot(graph_test_0_filtered, size = 0, label = NA)
+
+```
 
 
 
