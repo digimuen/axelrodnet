@@ -55,7 +55,7 @@ for sbf in 0.00:0.01:0.2
         socialbotfrac=sbf,
         rndseed=1,
         repcount=3,
-        export_every_n=10_000,
+        export_every_n=1_000_000,
         export_experiment=true,
         aggregated=false
     )
@@ -72,7 +72,7 @@ for sbf in 0.00:0.01:0.2, beta in 0.1:0.1:0.5
         socialbotfrac=sbf,
         rndseed=1,
         repcount=3,
-        export_every_n=10_000,
+        export_every_n=1_000_000,
         export_experiment=true,
         aggregated=false
     )
@@ -89,7 +89,7 @@ for sbf in 0.00:0.01:0.2
         socialbotfrac=sbf,
         rndseed=1,
         repcount=3,
-        export_every_n=10_000,
+        export_every_n=1_000_000,
         export_experiment=true,
         aggregated=false
     )

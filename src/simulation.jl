@@ -227,12 +227,35 @@ function export_experiment(;
 		Feather.write(joinpath(path, "data", "agents", "adata.feather"), agg_df)
 	else
 	    # export entire data
-	    for key in keys(experiment[1])
-	        if !("agents" in readdir(joinpath(path, "data")))
-	            mkdir(joinpath(path, "data", "agents"))
-	        end
-	        Feather.write(joinpath(path, "data", "agents", "rep_" * string(key) * ".feather"), experiment[1][key])
-	    end
+		full_df = DataFrame(
+			Rep = Int64[],
+			TickNr = Int64[],
+			AgentID = Int64[],
+			Culture = String[]
+		)
+
+		for key in keys(experiment[1])
+			df = experiment[1][key]
+			rep = key
+			append!(
+				full_df,
+				DataFrame(
+					Rep = rep,
+					TickNr = df[!, "TickNr"],
+					AgentID = df[!, "AgentID"],
+					Culture = df[!, "Culture"]
+				)
+			)
+		end
+		full_df[!, "SocialBotFrac"] .= socialbotfrac
+		for k in keys(networkprops)
+			full_df[!, k] .= networkprops[k]
+		end
+
+		if !("agents" in readdir(joinpath(path, "data")))
+			mkdir(joinpath(path, "data", "agents"))
+		end
+		Feather.write(joinpath(path, "data", "agents", "adata.feather"), full_df)
 	end
 
 end
