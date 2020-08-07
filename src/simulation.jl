@@ -102,12 +102,14 @@ function run(
 	socialbotfrac::Float64=0.00,
 	rndseed::Int64=1,
 	repcount::Int64=1,
-	export_every_n::Int64=100
+	export_every_n::Int64=100,
+	keep_rawnet::Bool=false
 )
 
 	Random.seed!(MersenneTwister(rndseed))
 
 	networks = Dict{Int64, AbstractGraph}()
+	networks_raw = Dict{Int64, AbstractGraph}()
 	data = Dict{Int64, DataFrame}()
 
 	for rep in 1:repcount
@@ -154,9 +156,33 @@ function run(
 
 		print(".")
 
+		if keep_rawnet
+			networks_raw[rep] = deepcopy(networks[rep])
+		end
+
+		nottalking = Array{Edge, 1}()
+
+		for v in vertices(networks[rep])
+			for neighbor in neighbors(networks[rep], v)
+				if !(
+					0 in (agents[v].cultureVector .- agents[neighbor].cultureVector)
+				)
+					push!(nottalking, Edge(v, neighbor))
+				end
+			end
+		end
+
+		for e in nottalking
+			rem_edge!(networks[rep], e)
+		end
+
 	end  # end rep
 
-	return (data, networks)
+	if keep_rawnet
+		return (data, networks, networks_raw)
+	else
+		return (data, networks)
+	end
 
 end
 
@@ -165,7 +191,7 @@ function export_experiment(;
 	path::String="",
 	socialbotfrac::Float64=0.0,
 	networkprops::Dict=Dict(),
-	aggregated::Bool=true
+	aggregated::Int64=0
 )
 
     # create data directory
@@ -178,11 +204,20 @@ function export_experiment(;
         if !("graphs" in readdir(joinpath(path, "data")))
             mkdir(joinpath(path, "data", "graphs"))
         end
-        savegraph(
-            joinpath(path, "data", "graphs", "rep_" * string(key) * ".txt"),
+
+		savegraph(
+            joinpath(path, "data", "graphs", "rep_" * string(key) * ".dot"),
             experiment[2][key],
-            GraphIO.EdgeList.EdgeListFormat()
+            GraphIO.DOT.DOTFormat()
         )
+
+		if length(experiment) == 3
+			savegraph(
+			joinpath(path, "data", "graphs", "repraw_" * string(key) * ".dot"),
+			experiment[3][key],
+			GraphIO.DOT.DOTFormat()
+			)
+		end
     end
 
     # unpack culture vector for data exchange
@@ -195,7 +230,11 @@ function export_experiment(;
         reshape_df!(experiment[1][key])
     end
 
-	if aggregated
+	if !("agents" in readdir(joinpath(path, "data")))
+		mkdir(joinpath(path, "data", "agents"))
+	end
+
+	if aggregated == 2
 		agg_df = DataFrame(
 			Rep = Int64[],
 			Size = Int64[],
@@ -221,11 +260,9 @@ function export_experiment(;
 		for k in keys(networkprops)
 			agg_df[!, k] .= networkprops[k]
 		end
-		if !("agents" in readdir(joinpath(path, "data")))
-			mkdir(joinpath(path, "data", "agents"))
-		end
+
 		Feather.write(joinpath(path, "data", "agents", "adata.feather"), agg_df)
-	else
+	elseif aggregated == 1
 	    # export entire data
 		full_df = DataFrame(
 			Rep = Int64[],
@@ -252,10 +289,17 @@ function export_experiment(;
 			full_df[!, k] .= networkprops[k]
 		end
 
-		if !("agents" in readdir(joinpath(path, "data")))
-			mkdir(joinpath(path, "data", "agents"))
-		end
 		Feather.write(joinpath(path, "data", "agents", "adata.feather"), full_df)
+	else
+		for key in keys(experiment[1])
+			df = DataFrame(
+				TickNr = experiment[1][key][!, "TickNr"],
+				AgentID = experiment[1][key][!, "AgentID"],
+				Culture = experiment[1][key][!, "Culture"]
+			)
+
+			Feather.write(joinpath(path, "data", "agents", "adata_rep" * string(key) * ".feather"), df)
+		end
 	end
 
 end
