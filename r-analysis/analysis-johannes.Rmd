@@ -20,21 +20,19 @@ source("helpers.R")
 
 ```{r read-ba-data}
 
-grid_data <- read_adata("grid", "data")
-ws_data <- read_adata("wattsstrogatz", "data")
-ba_data <- read_adata("barabasialbert", "data")
+grid_data <- read_adata("grid", "experiments")
+ws_data <- read_adata("wattsstrogatz", "experiments")
+ba_data <- read_adata("barabasialbert", "experiments")
 
 ```
 
-
-
 ```{r region-analysis}
 
-test_data <- arrow::read_feather(file.path("data", "TESTRUN", "data", "agents", "adata.feather"))
+test_data <- grid_data %>% filter(Rep == 1)
 
 test_data %>%
   filter(Rep == 1) %>% 
-  filter(TickNr == 1000000) %>%  
+  filter(TickNr == 100000) %>%  
   group_by(Culture) %>% 
   summarize(count = n()) %>% 
   ungroup() -> test_region_count
@@ -77,9 +75,6 @@ plot(graph_test_0_filtered, size = 0, label = NA)
 
 ```
 
-
-
-
 ```{r}
 
 df %>% 
@@ -109,8 +104,6 @@ df_reg_count %>%
 
 
 ```
-
-
 
 ```{r}
 
@@ -147,8 +140,6 @@ df_big_reg %>%
 
 ```
 
-
-
 ```{r}
 
 df %>% 
@@ -156,8 +147,6 @@ df %>%
   arrange(desc(Size))
 
 ```
-
-
 
 ```{r}
 
@@ -168,10 +157,6 @@ df %>%
 
 
 ```
-
-
-
-
 
 ```{r}
 
@@ -195,7 +180,6 @@ for (run in grid_runs) {
 }
 
 ```
-
 
 ```{r}
 
@@ -225,7 +209,6 @@ df2_reg_count %>%
   )
 
 ```
-
 
 ```{r}
 
@@ -262,11 +245,81 @@ df2_big_reg %>%
 
 ```
 
-
 ```{r}
 
 df2 %>% tail()
 
 ```
 
+
+```{r}
+
+grid_data %>% 
+  filter(Rep == 1) %>% 
+  filter(SocialBotFrac == 0.15) %>% 
+  filter(TickNr == 100000) %>% 
+  group_by(Culture) %>% 
+  summarize(n = n()) %>% 
+  ungroup() 
+
+```
+
+
+```{r}
+
+grid_data %>% 
+  filter(Culture == "00000") %>%
+  filter(TickNr == 1000000) %>% 
+  group_by(SocialBotFrac) %>% 
+  summarize(n = n() / 1000) %>% 
+  ggplot(aes(x = SocialBotFrac, y = n)) +
+  geom_line()
+
+```
+
+
+```{r}
+
+grid_data %>% 
+  filter(SocialBotFrac == 0.15) %>% 
+  filter(TickNr == 100000) %>%
+  filter(Rep == 4) %>% 
+  group_by(Culture) %>% 
+  summarize(n = n())
+
+```
+
+
+```{r}
+ws_data
+```
+
+
+```{r}
+
+ws_data$beta <- as.factor(ws_data$beta)
+
+ws_data %>% 
+  filter(Culture == "00000") %>% 
+  filter(TickNr == 100000) %>% 
+  group_by(SocialBotFrac, beta) %>% 
+  summarize(n = n() / 1000) %>% 
+  ggplot(aes(x = SocialBotFrac, y = n)) +
+  geom_line() +
+  facet_wrap(~ beta)
+
+```
+
+
+```{r}
+
+ba_data %>% 
+  filter(Culture == "00000") %>% 
+  filter(TickNr == 100000) %>% 
+  group_by(SocialBotFrac) %>% 
+  summarize(n = n() / 1000) %>% 
+  ggplot(aes(x = SocialBotFrac, y = n)) +
+  geom_line()
+
+```
 

@@ -1,9 +1,6 @@
 library(tidyverse)
 library(arrow)
 
-path <- "data"
-network <- "grid"
-
 read_adata <- function(network, path) {
   runs <- grep(network, list.files(path), value = TRUE)
   df <- arrow::read_feather(
