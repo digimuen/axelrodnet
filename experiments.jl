@@ -13,7 +13,8 @@ function run_experiment(;
     repcount::Int64,
     export_every_n::Int64,
     export_experiment::Bool,
-    aggregated::Bool
+    aggregated::Int64,
+    keep_rawnet::Bool
 )
     if !("experiments" in readdir())
         mkdir("experiments")
@@ -48,16 +49,17 @@ end
 for sbf in 0.00:0.01:0.2
     run_experiment(
         experiment_name="grid_sbf" * string(trunc(Int, sbf * 100)),
-        agentcount=10_000,
+        agentcount=100,
         n_iter=1_000_000,
         nettopology=1,
         networkprops=Dict("grid_height" => 100),
         socialbotfrac=sbf,
         rndseed=1,
-        repcount=3,
+        repcount=10,
         export_every_n=1_000_000,
         export_experiment=true,
-        aggregated=false
+        aggregated=0,
+        keep_rawnet=false
     )
 end
 
@@ -65,16 +67,17 @@ end
 for sbf in 0.00:0.01:0.2, beta in 0.1:0.1:0.5
     run_experiment(
         experiment_name="wattsstrogatz_sbf" * string(trunc(Int, sbf * 100)) * "_beta" * string(trunc(Int, beta * 10)),
-        agentcount=10_000,
+        agentcount=100,
         n_iter=1_000_000,
         nettopology=3,
         networkprops=Dict("k" => 10, "beta" => beta),
         socialbotfrac=sbf,
         rndseed=1,
-        repcount=3,
+        repcount=10,
         export_every_n=1_000_000,
         export_experiment=true,
-        aggregated=false
+        aggregated=0,
+        keep_rawnet=false
     )
 end
 
@@ -82,15 +85,16 @@ end
 for sbf in 0.00:0.01:0.2
     run_experiment(
         experiment_name="barabasialbert_sbf" * string(trunc(Int, sbf * 100)),
-        agentcount=10_000,
+        agentcount=100,
         n_iter=1_000_000,
         nettopology=4,
         networkprops=Dict("m0" => 10),
         socialbotfrac=sbf,
         rndseed=1,
-        repcount=3,
+        repcount=10,
         export_every_n=1_000_000,
         export_experiment=true,
-        aggregated=false
+        aggregated=0,
+        keep_rawnet=false
     )
 end
