@@ -1,10 +1,8 @@
-# include module
 include(joinpath("src", "axelrodnet.jl"))
 
-# grid graph
 for sf in 0.00:0.01:0.2
     Axelrodnet.run_experiment(
-        experiment_name="grid_sbf" * string(trunc(Int, sf * 100)),
+        experiment_name="grid_sf" * string(trunc(Int, sf * 100)),
         agentcount=100,
         n_iter=1_000_000,
         nettopology="grid",
@@ -14,15 +12,14 @@ for sf in 0.00:0.01:0.2
         repcount=10,
         export_every_n=1_000_000,
         export_experiment=true,
-        aggregated=0,
+        exportmode="default",
         keep_rawnet=false
     )
 end
 
-# Watts-Strogatz graph
 for sf in 0.00:0.01:0.2, beta in 0.1:0.1:0.5
     Axelrodnet.run_experiment(
-        experiment_name="wattsstrogatz_sbf" * string(trunc(Int, sf * 100)) * "_beta" * string(trunc(Int, beta * 10)),
+        experiment_name="wattsstrogatz_sf" * string(trunc(Int, sf * 100)) * "_beta" * string(trunc(Int, beta * 10)),
         agentcount=100,
         n_iter=1_000_000,
         nettopology="watts_strogatz",
@@ -32,15 +29,14 @@ for sf in 0.00:0.01:0.2, beta in 0.1:0.1:0.5
         repcount=10,
         export_every_n=1_000_000,
         export_experiment=true,
-        aggregated=0,
+        exportmode="default",
         keep_rawnet=false
     )
 end
 
-# Barabasi-Albert graph
 for sf in 0.00:0.01:0.2
     Axelrodnet.run_experiment(
-        experiment_name="barabasialbert_sbf" * string(trunc(Int, sf * 100)),
+        experiment_name="barabasialbert_sf" * string(trunc(Int, sf * 100)),
         agentcount=100,
         n_iter=1_000_000,
         nettopology="barabasi_albert",
@@ -50,7 +46,7 @@ for sf in 0.00:0.01:0.2
         repcount=10,
         export_every_n=1_000_000,
         export_experiment=true,
-        aggregated=0,
+        exportmode="default",
         keep_rawnet=false
     )
 end
