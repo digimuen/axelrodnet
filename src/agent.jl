@@ -1,10 +1,10 @@
 mutable struct Agent
 
-    cultureVector::AbstractArray
-    socialbot::Bool
+    culture::AbstractArray
+    stubborn::Bool
 
-    function Agent(cultureVector, socialbot=false)
-        new(cultureVector, socialbot)
+    function Agent(culture, stubborn=false)
+        new(culture, stubborn)
     end
 
 end

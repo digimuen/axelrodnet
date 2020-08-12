@@ -78,3 +78,6 @@ sandbox.jl
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 *.ipynb
+*.feather
+*.dot
+*.html

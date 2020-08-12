@@ -3,103 +3,103 @@ function assimilate!(
 	acting_agent::Agent,
 	interaction_partner::Agent
 )
-
-	random_attr = rand(1:length(acting_agent.cultureVector))
-
-	if acting_agent.cultureVector[random_attr] - interaction_partner.cultureVector[random_attr] != 0
-		acting_agent.cultureVector[random_attr] = interaction_partner.cultureVector[random_attr]
+	random_attr = rand(1:length(acting_agent.culture))
+	if !(acting_agent.culture[random_attr] == interaction_partner.culture[random_attr])
+		acting_agent.culture[random_attr] = interaction_partner.culture[random_attr]
 	else
 		assimilate!(agents, acting_agent, interaction_partner)
 	end
-
 	return acting_agent
-
 end
 
-function create_network(nettopology::Int64, agentcount::Int64, networkprops::Dict)
-	if nettopology == 1
-		try
-			height = Int(networkprops["grid_height"])
-			width = Int(agentcount / height)
-			network = grid([height, width])
-		catch
-			print(
-				"""
-				No/Faulty grid height provided
-				defaulting to grid with dimensions [agentcount, 1]
-				"""
-			)
-			network = grid(Int64[agentcount, 1])
-		end
-	elseif nettopology == 2
+function create_network(
+	nettopology::String,
+	agentcount::Int64,
+	networkprops::Dict
+)
+	if nettopology == "grid"
+		network = grid(agentcount, networkprops)
+	elseif nettopology == "erdos_renyi"
 		network = erdos_renyi(agentcount, networkprops["p"])
-	elseif nettopology == 3
+	elseif nettopology == "watts_strogatz"
 		network = watts_strogatz(agentcount, networkprops["k"], networkprops["beta"])
-	elseif nettopology == 4
+	elseif nettopology == "barabasi_albert"
 		network = barabasi_albert(agentcount, networkprops["m0"])
-	elseif nettopology == 5
+	elseif nettopology == "complete"
 		network = complete_graph(agentcount)
 	else
-		try
-			height = Int(networkprops["grid_height"])
-			width = Int(agentcount / height)
-			network = grid([height, width])
-		catch
-			network = grid(Int64[agentcount, 1])
-		end
-		print(
-			"""
-			irregular input for nettopology
-			defaulting to grid
-			choose one of the following to specify network topology:
-			- nettopology=1 (grid graph)
-			- nettopology=2 (erdos-renyi graph)
-			- nettopology=3 (watts-strogatz graph)
-			- nettopology=4 (barabasi-albert graph)
-			- nettopology=5 (complete graph)
-			"""
-		)
+		network = default_network(agentcount, networkprops)
 	end
 	return network
+end
+
+function LightGraphs.grid(agentcount::Int64, networkprops::Dict)
+	try
+		height = Int(networkprops["grid_height"])
+		width = Int(agentcount / height)
+		network = LightGraphs.grid([height, width])
+		return network
+	catch
+		print(
+			"""
+			No/Faulty grid height provided
+			defaulting to grid with dimensions [agentcount, 1]
+			"""
+		)
+		network = LightGraphs.grid(Int64[agentcount, 1])
+		return network
+	end
+end
+
+function default_network(agentcount::Int64, networkprops::Dict)
+	network = grid(agentcount, networkprops)
+	print(
+		"""
+		irregular input for nettopology
+		defaulting to grid
+		"""
+	)
 end
 
 function tick!(
 	agents::AbstractArray,
 	network::AbstractGraph
 )
-
-	random_draw = rand(1:length(agents))
-	acting_agent = agents[random_draw]
-
-	interaction_partner = agents[rand(neighbors(network, random_draw))]
-
-	if !acting_agent.socialbot
-
-		similarity = sum(
-			[
-				i == j
-				for (i, j) in zip(
-					acting_agent.cultureVector,
-					interaction_partner.cultureVector
-				)
-			]
-		) / length(acting_agent.cultureVector)
-
+	agent_id = rand(1:length(agents))
+	acting_agent = agents[agent_id]
+	interaction_partner = draw_interaction_partner(agents, network, agent_id)
+	if !acting_agent.stubborn
+		similarity = compute_similarity(acting_agent, interaction_partner)
 		if rand() < similarity && similarity != 1
 			assimilate!(agents, acting_agent, interaction_partner)
 		end
 	end
-
 	return (network, agents)
 end
 
-function run(
-	;
+function draw_interaction_partner(agents, network, agent_id::Int64)
+	agent_neighbors = LightGraphs.neighbors(network, agent_id)
+	interaction_partner_id = rand(agent_neighbors)
+	return agents[interaction_partner_id]
+end
+
+function compute_similarity(acting_agent::Agent, interaction_partner::Agent)
+	shared_traits = sum(
+		[
+			i == j
+			for (i, j) in zip(acting_agent.culture, interaction_partner.culture)
+		]
+	)
+	similarity = shared_traits / length(acting_agent.culture)
+	return similarity
+end
+
+function run(;
 	agentcount::Int64=100,
 	n_iter::Int64=1000,
-	nettopology::Int64=1,
+	nettopology::String="grid",
 	networkprops::Dict=Dict(),
-	socialbotfrac::Float64=0.00,
+	stubbornfrac::Float64=0.00,
 	rndseed::Int64=1,
 	repcount::Int64=1,
 	export_every_n::Int64=100,
@@ -113,70 +113,32 @@ function run(
 	data = Dict{Int64, DataFrame}()
 
 	for rep in 1:repcount
-
-		agents = Agent[]
-		realagentlimit = round(Int64, (1 - socialbotfrac) * agentcount)
-		for i in 1:realagentlimit
-			push!(agents, Agent(rand(0:9, 5)))
-		end
-
-		socialbotlimit = agentcount - realagentlimit
-
-		for i in 1:socialbotlimit
-			push!(agents, Agent(fill(0, 5), true))
-		end
-
+		agents = create_agents(agentcount, stubbornfrac)
 		network = create_network(nettopology, agentcount, networkprops)
-		networks[rep] = network
-
-		state = Tuple{AbstractGraph, Array{Agent, 1}}[]
 
 		df = DataFrame(
 			TickNr = 0,
 			AgentID = 1:length(deepcopy(agents)),
-			CultureTmp = [agent.cultureVector for agent in deepcopy(agents)]
+			CultureTmp = [agent.culture for agent in deepcopy(agents)]
 		)
 
-		for i in 1:n_iter
+		for ticknr in 1:n_iter
 			tick!(agents, network)
-			if i % export_every_n == 0
-				append!(
-					df,
-					DataFrame(
-						TickNr = i,
-						AgentID = 1:length(deepcopy(agents)),
-						CultureTmp = [agent.cultureVector for agent in deepcopy(agents)]
-					)
-				)
+			if ticknr % export_every_n == 0
+				append_state!(df, agents, ticknr)
 			end
-
-		end  # end iter
+		end
 
 		data[rep] = df
-
-		print(".")
-
 		if keep_rawnet
-			networks_raw[rep] = deepcopy(networks[rep])
+			networks_raw[rep] = deepcopy(network)
+			networks[rep] = prune_network!(network, agents)
+		else
+			networks[rep] = network
 		end
 
-		nottalking = Array{Edge, 1}()
-
-		for v in vertices(networks[rep])
-			for neighbor in neighbors(networks[rep], v)
-				if !(
-					0 in (agents[v].cultureVector .- agents[neighbor].cultureVector)
-				)
-					push!(nottalking, Edge(v, neighbor))
-				end
-			end
-		end
-
-		for e in nottalking
-			rem_edge!(networks[rep], e)
-		end
-
-	end  # end rep
+		print("=")
+	end
 
 	if keep_rawnet
 		return (data, networks, networks_raw)
@@ -186,53 +148,115 @@ function run(
 
 end
 
+function prune_network!(network, agents)
+	nottalking = Array{Edge, 1}()
+	for v in vertices(network)
+		for neighbor in neighbors(network, v)
+			if !(
+				0 in (agents[v].culture .- agents[neighbor].culture)
+			)
+				push!(nottalking, Edge(v, neighbor))
+			end
+		end
+	end
+	for e in nottalking
+		rem_edge!(network, e)
+	end
+	return network
+end
+
+function append_state!(df, agents, ticknr)
+	append!(
+		df,
+		DataFrame(
+			TickNr = ticknr,
+			AgentID = 1:length(deepcopy(agents)),
+			CultureTmp = [agent.culture for agent in deepcopy(agents)]
+		)
+	)
+	return df
+end
+
+function create_agents(agentcount, stubbornfrac)
+	agents = Agent[]
+	realagentlimit = round(Int64, (1 - stubbornfrac) * agentcount)
+	stubbornlimit = agentcount - realagentlimit
+	for i in 1:realagentlimit
+		push!(agents, Agent(rand(0:9, 5)))
+	end
+	for i in 1:stubbornlimit
+		push!(agents, Agent(fill(0, 5), true))
+	end
+	return agents
+end
+
+function run_experiment(;
+    experiment_name::String,
+    agentcount::Int64,
+    n_iter::Int64,
+    nettopology::String,
+    networkprops::Dict,
+    stubbornfrac::Float64,
+    rndseed::Int64,
+    repcount::Int64,
+    export_every_n::Int64,
+    export_experiment::Bool,
+    aggregated::Int64,
+    keep_rawnet::Bool
+)
+    experiment = Axelrodnet.run(
+        agentcount=agentcount,
+        n_iter=n_iter,
+        nettopology=nettopology,
+        networkprops=networkprops,
+        stubbornfrac=stubbornfrac,
+        rndseed=rndseed,
+        repcount=repcount,
+        export_every_n=export_every_n,
+		keep_rawnet=keep_rawnet
+    )
+    if export_experiment
+        Axelrodnet.export_experiment(
+            experiment=experiment,
+            experiment_name=experiment_name,
+            stubbornfrac=stubbornfrac,
+            networkprops=networkprops,
+            aggregated=aggregated
+        )
+    end
+    return experiment
+end
+
+function create_experiment_directory(experiment_name::String)
+	if !("experiments" in readdir())
+		mkdir("experiments")
+	end
+	if !(experiment_name in readdir("experiments"))
+		mkdir(joinpath("experiments", experiment_name))
+	end
+	if !("agents" in readdir(joinpath("experiments", experiment_name)))
+		mkdir(joinpath("experiments", experiment_name, "agents"))
+	end
+	if !("graphs" in readdir(joinpath("experiments", experiment_name)))
+		mkdir(joinpath("experiments", experiment_name, "graphs"))
+	end
+	return true
+end
+
 function export_experiment(;
 	experiment,
-	path::String="",
-	socialbotfrac::Float64=0.0,
+	experiment_name::String="default",
+	stubbornfrac::Float64=0.0,
 	networkprops::Dict=Dict(),
 	aggregated::Int64=0
 )
+	path = joinpath("experiments", experiment_name)
+	create_experiment_directory(experiment_name)
+	export_graphs(experiment, path)
 
-    # create data directory
-    if !("data" in readdir(path))
-        mkdir(joinpath(path, "data"))
-    end
-
-    # export graphs to edge list format
-    for key in keys(experiment[2])
-        if !("graphs" in readdir(joinpath(path, "data")))
-            mkdir(joinpath(path, "data", "graphs"))
-        end
-
-		savegraph(
-            joinpath(path, "data", "graphs", "rep_" * string(key) * ".dot"),
-            experiment[2][key],
-            GraphIO.DOT.DOTFormat()
-        )
-
-		if length(experiment) == 3
-			savegraph(
-			joinpath(path, "data", "graphs", "repraw_" * string(key) * ".dot"),
-			experiment[3][key],
-			GraphIO.DOT.DOTFormat()
-			)
-		end
-    end
-
-    # unpack culture vector for data exchange
-    function reshape_df!(df)
-        df[!, "Culture"] = [join(c) for c in df[!, "CultureTmp"]]
-		select!(df, DataFrames.Not(:CultureTmp))
-        return df
-    end
     for key in keys(experiment[1])
         reshape_df!(experiment[1][key])
     end
-
-	if !("agents" in readdir(joinpath(path, "data")))
-		mkdir(joinpath(path, "data", "agents"))
-	end
 
 	if aggregated == 2
 		agg_df = DataFrame(
@@ -256,12 +280,12 @@ function export_experiment(;
 				)
 			end
 		end
-		agg_df[!, "SocialBotFrac"] .= socialbotfrac
+		agg_df[!, "StubbornFrac"] .= stubbornfrac
 		for k in keys(networkprops)
 			agg_df[!, k] .= networkprops[k]
 		end
 
-		Feather.write(joinpath(path, "data", "agents", "adata.feather"), agg_df)
+		Feather.write(joinpath(path, "agents", "adata.feather"), agg_df)
 	elseif aggregated == 1
 	    # export entire data
 		full_df = DataFrame(
@@ -284,12 +308,12 @@ function export_experiment(;
 				)
 			)
 		end
-		full_df[!, "SocialBotFrac"] .= socialbotfrac
+		full_df[!, "StubbornFrac"] .= stubbornfrac
 		for k in keys(networkprops)
 			full_df[!, k] .= networkprops[k]
 		end
 
-		Feather.write(joinpath(path, "data", "agents", "adata.feather"), full_df)
+		Feather.write(joinpath(path, "agents", "adata.feather"), full_df)
 	else
 		for key in keys(experiment[1])
 			df = DataFrame(
@@ -298,8 +322,32 @@ function export_experiment(;
 				Culture = experiment[1][key][!, "Culture"]
 			)
 
-			Feather.write(joinpath(path, "data", "agents", "adata_rep" * string(key) * ".feather"), df)
+			Feather.write(joinpath(path, "agents", "adata_rep" * string(key) * ".feather"), df)
 		end
 	end
 
+end
+
+function reshape_df!(df)
+	df[!, "Culture"] = [join(c) for c in df[!, "CultureTmp"]]
+	select!(df, DataFrames.Not(:CultureTmp))
+	return df
+end
+
+function export_graphs(experiment, path)
+	for key in keys(experiment[2])
+		savegraph(
+			joinpath(path, "graphs", "rep_" * lpad(string(key), 2, "0") * ".gml"),
+			experiment[2][key],
+			GraphIO.GML.GMLFormat()
+		)
+		if length(experiment) == 3
+			savegraph(
+				joinpath(path, "graphs", "repraw_" * lpad(string(key), 2, "0") * ".gml"),
+				experiment[3][key],
+				GraphIO.GML.GMLFormat()
+			)
+		end
+	end
+	return true
 end

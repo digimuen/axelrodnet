@@ -1,0 +1,162 @@
+---
+title: "Agent Count Degeneracy"
+author: "Johannes Nakayama"
+date: "10 8 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(magrittr)
+source("helpers.R")
+
+```
+
+```{r read-and-format}
+
+low <- arrow::read_feather(
+  file.path("agentcount_experiments", "low_agentcount", "data", "agents", "adata.feather")
+)
+low$Rep %<>% as.numeric()
+low$TickNr  %<>% as.numeric() 
+low$AgentID %<>% as.numeric()
+low$grid_height %<>% as.numeric()
+low %<>% select(-SocialBotFrac, -grid_height)
+low$AgentCount <- max(low$AgentID)
+
+high <- arrow::read_feather(
+  file.path("agentcount_experiments", "high_agentcount", "data", "agents", "adata.feather")
+)
+high$Rep %<>% as.numeric()
+high$TickNr  %<>% as.numeric() 
+high$AgentID %<>% as.numeric()
+high$grid_height %<>% as.numeric()
+high %<>% select(-SocialBotFrac, -grid_height)
+high$AgentCount <- max(high$AgentID)
+
+data <- union(low, high)
+data$AgentCount %<>% as.factor()
+
+rm(high, low)
+
+```
+
+```{r boxplot-low}
+
+data %>% 
+  filter(TickNr == 1000000) %>% 
+  filter(AgentCount == 100) %>% 
+  group_by(Rep) %>%
+  summarise(unique_cultures = n_distinct(Culture)) %>% 
+  ggplot(aes(y = unique_cultures)) +
+  geom_boxplot(fill = "lightblue") +
+  scale_x_discrete() +
+  theme_bw() +
+  labs(
+    title = "Unique Cultures in Different Repetitions for 100 Agents",
+    x = element_blank(),
+    y = "Unique Cultures"
+  )
+
+ggsave("unique_cultures_boxplot_low.png", device = "png")
+
+```
+
+```{r boxplot-high}
+
+data %>% 
+  filter(TickNr == 2000000) %>% 
+  filter(AgentCount == 10000) %>% 
+  group_by(Rep) %>%
+  summarise(unique_cultures = n_distinct(Culture)) %>% 
+  ggplot(aes(y = unique_cultures)) +
+  geom_boxplot(fill = "lightblue") +
+  scale_x_discrete() +
+  theme_bw() +
+  labs(
+    title = "Unique Cultures in Different Repetitions for 10,000 Agents",
+    x = element_blank(),
+    y = "Unique Cultures"
+  )
+
+ggsave("unique_cultures_boxplot_high.png", device = "png")
+
+```
+
+
+```{r lineplot-low}
+
+data %>% 
+  filter(AgentCount == 100) %>% 
+  filter(TickNr <= 250000) %>% 
+  group_by(Rep, TickNr) %>% 
+  summarize(unique_cultures = n_distinct(Culture)) -> low_lineplot
+
+low_lineplot$unique_cultures %<>% as.numeric()
+low_lineplot$Rep %<>% as.factor()
+
+low_lineplot %>% 
+  ggplot(aes(x=TickNr, y=unique_cultures, color=Rep)) +
+  geom_line() +
+  theme_bw() +
+  labs(
+    title = "Unique Cultures by Tick for Different Repetitions for 100 Agents",
+    x = "Tick",
+    y = "Unique Cultures"
+  ) +
+  theme(
+    legend.position = "None"
+  )
+
+ggsave("unique_cultures_lineplot_low.png", width = 19, height = 6, dpi = 700, device = "png")
+
+```
+
+```{r lineplot-high}
+
+data %>% 
+  filter(AgentCount == 10000) %>% 
+  group_by(Rep, TickNr) %>% 
+  summarize(unique_cultures = n_distinct(Culture)) -> high_lineplot
+
+high_lineplot$unique_cultures %<>% as.numeric()
+high_lineplot$Rep %<>% as.factor()
+
+high_lineplot %>% 
+  ggplot(aes(x=TickNr, y=unique_cultures, color=Rep)) +
+  geom_line() +
+  theme_bw() +
+  labs(
+    title = "Unique Cultures by Tick for Different Repetitions for 10,000 Agents",
+    x = "Tick",
+    y = "Unique Cultures"
+  ) +
+  theme(
+    legend.position = "None"
+  )
+
+ggsave("unique_cultures_lineplot_high.png", width = 19, height = 6, dpi = 700, device = "png")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
