@@ -16,7 +16,7 @@ function assert_input_parameters(
 	elseif nettopology == "watts_strogatz"
 		handle_faulty_watts_strogatz_params!(networkprops, agentcount)
 	elseif nettopology == "barabasi_albert"
-		handle_faulty_watts_strogatz_params!(networkprops, agentcount)
+		handle_faulty_barabasi_albert_params!(networkprops, agentcount)
 	end
 	return agentcount, nettopology, networkprops, stubborncount
 end
@@ -112,7 +112,6 @@ function handle_faulty_barabasi_albert_params!(networkprops, agentcount)
 end
 
 function print_warning(message::String, varname::String, default_value::Any)
-	println()
-	println("WARNGING: " * message)
-	println("          defaulted to " * varname * " = $default_value")
+	println("WARNING: " * message)
+	println("         defaulted to " * varname * " = $default_value")
 end

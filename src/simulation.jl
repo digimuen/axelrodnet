@@ -48,6 +48,8 @@ function run(;
 	export_every_n::Int64=100,
 	keep_rawnet::Bool=false
 )
+	println()
+	println("Starting experiment: " * experiment_name)
 	agentcount, nettopology, networkprops, stubborncount = assert_input_parameters(
 		agentcount,
 		nettopology,

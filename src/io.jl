@@ -49,8 +49,9 @@ function export_agentdata(;
 	stubborncount::Int64,
 	networkprops::Dict
 )
-	for key in keys(experiment[1])
-		join_cultures!(experiment[1][key])
+	agentdata_array = experiment[1]
+	for agent_dataframe in agentdata_array
+		join_cultures!(agent_dataframe)
 	end
 	if exportmode == "aggregated"
 		export_aggregated(

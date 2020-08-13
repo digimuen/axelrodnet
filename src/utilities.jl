@@ -45,7 +45,6 @@ function prune_network!(
 end
 
 function init_progressbar(n_replicates::Int64, experiment_name::String)
-	println()
 	println("Running: " * experiment_name * " ")
 	print("[" * (" " ^ n_replicates) * "] " * "0 repetitions finished")
 end
