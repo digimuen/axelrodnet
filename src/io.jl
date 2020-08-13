@@ -1,14 +1,24 @@
 function export_experiment(;
-	experiment,
+	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
 	experiment_name::String="default",
-	stubbornfrac::Float64=0.0,
+	stubborncount::Int64=0,
 	networkprops::Dict=Dict(),
 	exportmode::String="default"
 )
 	path = joinpath("experiments", experiment_name)
 	create_experiment_directory(experiment_name)
-	export_graphs(experiment, path)
-	export_agentdata(experiment, path, exportmode, stubbornfrac, networkprops)
+	export_graphs(
+		experiment=experiment,
+		path=path
+	)
+	export_agentdata(
+		experiment=experiment,
+		path=path,
+		exportmode=exportmode,
+		stubborncount=stubborncount,
+		networkprops=networkprops
+	)
+	return true
 end
 
 function create_experiment_directory(experiment_name::String)
@@ -27,15 +37,18 @@ function create_experiment_directory(experiment_name::String)
 	return true
 end
 
-function export_graphs(experiment, path)
+function export_graphs(;
+	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
+	path::String
+)
 	for key in keys(experiment[2])
-		savegraph(
+		LightGraphs.savegraph(
 			joinpath(path, "graphs", "rep_" * lpad(string(key), 2, "0") * ".gml"),
 			experiment[2][key],
 			GraphIO.GML.GMLFormat()
 		)
 		if length(experiment) == 3
-			savegraph(
+			LightGraphs.savegraph(
 				joinpath(path, "graphs", "repraw_" * lpad(string(key), 2, "0") * ".gml"),
 				experiment[3][key],
 				GraphIO.GML.GMLFormat()
@@ -45,91 +58,126 @@ function export_graphs(experiment, path)
 	return true
 end
 
-function export_agentdata(experiment, path, exportmode::String, stubbornfrac, networkprops)
+function export_agentdata(;
+	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
+	path::String,
+	exportmode::String,
+	stubborncount::Int64,
+	networkprops::Dict
+)
 	for key in keys(experiment[1])
 		reshape_df!(experiment[1][key])
 	end
 	if exportmode == "aggregated"
-		export_aggregated(experiment, path, stubbornfrac, networkprops)
+		export_aggregated(
+			experiment=experiment,
+			path=path,
+			stubborncount=stubborncount,
+			networkprops=networkprops
+		)
 	elseif exportmode == "separate_dataframes"
-		export_separate_dataframes(experiment, path)
+		export_separate_dataframes(
+			experiment=experiment,
+			path=path
+		)
 	else
-		export_default(experiment, path, stubbornfrac, networkprops)
+		export_default(
+			experiment=experiment,
+			path=path,
+			stubborncount=stubborncount,
+			networkprops=networkprops
+		)
 	end
 end
 
-function reshape_df!(df)
-	df[!, "Culture"] = [join(c) for c in df[!, "CultureTmp"]]
-	select!(df, DataFrames.Not(:CultureTmp))
-	return df
+function reshape_df!(dataframe::DataFrames.DataFrame)
+	dataframe[!, "Culture"] = [join(c) for c in dataframe[!, "CultureTmp"]]
+	select!(dataframe, DataFrames.Not(:CultureTmp))
+	return dataframe
 end
 
-function export_aggregated(experiment, path, stubbornfrac, networkprops)
-	agg_df = DataFrame(
+function export_aggregated(;
+	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
+	path::String,
+	stubborncount::Int64,
+	networkprops::Dict
+)
+	agentdata_dict = experiment[1]
+	aggregated_dataframe = DataFrames.DataFrame(
 		Rep = Int64[],
 		Size = Int64[],
 		Culture = String[]
 	)
-	for key in keys(experiment[1])
-		df = experiment[1][key]
-		finaltick = filter(:TickNr => ==(maximum(df[!, "TickNr"])), df)
-		rep = key
+	for key in keys(agentdata_dict)
+		replicate_dataframe = agentdata_dict[key]
+		finaltick = filter(
+			:TickNr => ==(maximum(replicate_dataframe[!, "TickNr"])),
+			replicate_dataframe
+		)
+		replicate = key
 		unique_cultures = unique(finaltick[!, "Culture"])
-		for c in unique_cultures
-			push!(
-				agg_df,
-				(
-					rep,
-					sum([culture == c for culture in finaltick[!, "Culture"]]),
-					c
-				)
-			)
+		for culture in unique_cultures
+			size = sum([c == culture for c in finaltick[!, "Culture"]])
+			row = (replicate, size, culture)
+			push!(aggregated_dataframe, row)
 		end
 	end
-	agg_df[!, "StubbornFrac"] .= stubbornfrac
-	for k in keys(networkprops)
-		agg_df[!, k] .= networkprops[k]
+	aggregated_dataframe[!, "StubbornCount"] .= stubborncount
+	for key in keys(networkprops)
+		varname = to_camelcase(key)
+		aggregated_dataframe[!, varname] .= networkprops[key]
 	end
-	Feather.write(joinpath(path, "agents", "adata.feather"), agg_df)
+	Feather.write(
+		joinpath(path, "agents", "adata.feather"),
+		aggregated_dataframe
+	)
 	return true
 end
 
-function export_separate_dataframes(experiment, path)
-	for key in keys(experiment[1])
-		df = DataFrame(
-			TickNr = experiment[1][key][!, "TickNr"],
-			AgentID = experiment[1][key][!, "AgentID"],
-			Culture = experiment[1][key][!, "Culture"]
+function export_separate_dataframes(;
+	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
+	path::String
+)
+	agentdata_dict = experiment[1]
+	for key in keys(agentdata_dict)
+		replicate_dataframe = agentdata_dict[key]
+		Feather.write(
+			joinpath(path, "agents", "adata_rep" * string(key) * ".feather"),
+			replicate_dataframe
 		)
-		Feather.write(joinpath(path, "agents", "adata_rep" * string(key) * ".feather"), df)
 	end
 	return true
 end
 
-function export_default(experiment, path, stubbornfrac, networkprops)
-	full_df = DataFrame(
-		Rep = Int64[],
+function export_default(;
+	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
+	path::String,
+	stubborncount::Int64,
+	networkprops::Dict
+)
+	agentdata_dict = experiment[1]
+	full_dataframe = DataFrames.DataFrame(
+		Replicate = Int64[],
 		TickNr = Int64[],
 		AgentID = Int64[],
 		Culture = String[]
 	)
-	for key in keys(experiment[1])
-		df = experiment[1][key]
-		rep = key
+	for key in keys(agentdata_dict)
+		replicate_dataframe = agentdata_dict[key]
+		replicate_dataframe[!, "Replicate"] .= key
 		append!(
-			full_df,
-			DataFrame(
-				Rep = rep,
-				TickNr = df[!, "TickNr"],
-				AgentID = df[!, "AgentID"],
-				Culture = df[!, "Culture"]
-			)
+			full_dataframe,
+			replicate_dataframe
 		)
 	end
-	full_df[!, "StubbornFrac"] .= stubbornfrac
-	for k in keys(networkprops)
-		full_df[!, k] .= networkprops[k]
+	full_dataframe[!, "StubbornCount"] .= stubborncount
+	for key in keys(networkprops)
+		varname = to_camelcase(key)
+		full_dataframe[!, varname] .= networkprops[key]
 	end
-	Feather.write(joinpath(path, "agents", "adata.feather"), full_df)
+	Feather.write(
+		joinpath(path, "agents", "adata.feather"),
+		full_dataframe
+	)
 	return true
 end

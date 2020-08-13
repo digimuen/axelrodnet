@@ -6,11 +6,11 @@ Axelrodnet.run_experiment(
     n_iter=1_000_000,
     nettopology="grid",
     networkprops=Dict("grid_height" => 10),
-    stubbornfrac=0.0,
+    stubborncount=0,
     rndseed=0,
     repcount=10,
     export_every_n=100_000,
-    export_experiment=true,
-    exportmode="aggregated",
+    exportdata=true,
+    exportmode="default",
     keep_rawnet=true
 )

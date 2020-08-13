@@ -11,16 +11,23 @@ function tick!(
 			assimilate!(agents, acting_agent, interaction_partner)
 		end
 	end
-	return (network, agents)
+	return (agents, network)
 end
 
-function draw_interaction_partner(agents, network, agent_id::Int64)
+function draw_interaction_partner(
+	agents::AbstractArray,
+	network::AbstractGraph,
+	agent_id::Int64
+)
 	agent_neighbors = LightGraphs.neighbors(network, agent_id)
 	interaction_partner_id = rand(agent_neighbors)
 	return agents[interaction_partner_id]
 end
 
-function compute_similarity(acting_agent::Agent, interaction_partner::Agent)
+function compute_similarity(
+	acting_agent::Agent,
+	interaction_partner::Agent
+)
 	shared_traits = sum(
 		[
 			i == j

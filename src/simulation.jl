@@ -4,31 +4,31 @@ function run_experiment(;
     n_iter::Int64,
     nettopology::String,
     networkprops::Dict,
-    stubbornfrac::Float64,
+    stubborncount::Int64,
     rndseed::Int64,
     repcount::Int64,
     export_every_n::Int64,
-    export_experiment::Bool,
+    exportdata::Bool,
     exportmode::String,
     keep_rawnet::Bool
 )
-    experiment = Axelrodnet.run(
+    experiment = run(
 		experiment_name=experiment_name,
         agentcount=agentcount,
         n_iter=n_iter,
         nettopology=nettopology,
         networkprops=networkprops,
-        stubbornfrac=stubbornfrac,
+        stubborncount=stubborncount,
         rndseed=rndseed,
         repcount=repcount,
         export_every_n=export_every_n,
 		keep_rawnet=keep_rawnet
     )
-    if export_experiment
-        Axelrodnet.export_experiment(
+    if exportdata
+        export_experiment(
             experiment=experiment,
             experiment_name=experiment_name,
-            stubbornfrac=stubbornfrac,
+            stubborncount=stubborncount,
             networkprops=networkprops,
             exportmode=exportmode
         )
@@ -42,28 +42,28 @@ function run(;
 	n_iter::Int64=1000,
 	nettopology::String="grid",
 	networkprops::Dict=Dict(),
-	stubbornfrac::Float64=0.00,
+	stubborncount::Int64=0,
 	rndseed::Int64=1,
 	repcount::Int64=1,
 	export_every_n::Int64=100,
 	keep_rawnet::Bool=false
 )
-	Random.seed!(MersenneTwister(rndseed))
-	networks = Dict{Int64, AbstractGraph}()
-	networks_raw = Dict{Int64, AbstractGraph}()
-	data = Dict{Int64, DataFrame}()
+	Random.seed!(Random.MersenneTwister(rndseed))
+	networks = Dict{Int64, LightGraphs.AbstractGraph}()
+	networks_raw = Dict{Int64, LightGraphs.AbstractGraph}()
+	agentdata = Dict{Int64, DataFrames.DataFrame}()
 	init_progressbar(repcount, experiment_name)
 	for rep in 1:repcount
-		agents = create_agents(agentcount, stubbornfrac)
+		agents = create_agents(agentcount, stubborncount)
 		network = create_network(nettopology, agentcount, networkprops)
-		df = init_agentdf(agents)
+		agentdf = init_agentdf(agents)
 		for ticknr in 1:n_iter
 			tick!(agents, network)
 			if ticknr % export_every_n == 0
-				append_state!(df, agents, ticknr)
+				append_state!(agentdf, agents, ticknr)
 			end
 		end
-		data[rep] = df
+		agentdata[rep] = agentdf
 		if keep_rawnet
 			networks_raw[rep] = deepcopy(network)
 			networks[rep] = prune_network!(network, agents)
@@ -73,8 +73,8 @@ function run(;
 		update_progressbar(rep, repcount)
 	end
 	if keep_rawnet
-		return (data, networks, networks_raw)
+		return (agentdata, networks, networks_raw)
 	else
-		return (data, networks)
+		return (agentdata, networks)
 	end
 end
