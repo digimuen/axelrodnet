@@ -5,12 +5,12 @@ Axelrodnet.run_experiment(
     agentcount=100,
     n_iter=1_000_000,
     nettopology="grid",
-    networkprops=Dict("grid_height" => 10),
-    stubborncount=0,
+    networkprops=Dict(),
+    stubborncount=101,
     rndseed=0,
-    repcount=10,
+    n_replicates=10,
     export_every_n=100_000,
     exportdata=true,
-    exportmode="default",
+    exportmode="aggregated",
     keep_rawnet=true
 )

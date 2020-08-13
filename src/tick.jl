@@ -2,12 +2,11 @@ function tick!(
 	agents::AbstractArray,
 	network::AbstractGraph
 )
-	agent_id = rand(1:length(agents))
-	acting_agent = agents[agent_id]
-	interaction_partner = draw_interaction_partner(agents, network, agent_id)
+	acting_agent = StatsBase.sample(agents)
+	interaction_partner = draw_interaction_partner(agents, network, acting_agent)
 	if !acting_agent.stubborn
 		similarity = compute_similarity(acting_agent, interaction_partner)
-		if rand() < similarity && similarity != 1
+		if (rand() < similarity) && (similarity != 1)
 			assimilate!(agents, acting_agent, interaction_partner)
 		end
 	end
@@ -17,11 +16,12 @@ end
 function draw_interaction_partner(
 	agents::AbstractArray,
 	network::AbstractGraph,
-	agent_id::Int64
+	agent::Agent
 )
-	agent_neighbors = LightGraphs.neighbors(network, agent_id)
+	agent_neighbors = LightGraphs.neighbors(network, agent.id)
 	interaction_partner_id = rand(agent_neighbors)
-	return agents[interaction_partner_id]
+	interaction_partner = agents[interaction_partner_id]
+	return interaction_partner
 end
 
 function compute_similarity(

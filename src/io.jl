@@ -21,22 +21,6 @@ function export_experiment(;
 	return true
 end
 
-function create_experiment_directory(experiment_name::String)
-	if !("experiments" in readdir())
-		mkdir("experiments")
-	end
-	if !(experiment_name in readdir("experiments"))
-		mkdir(joinpath("experiments", experiment_name))
-	end
-	if !("agents" in readdir(joinpath("experiments", experiment_name)))
-		mkdir(joinpath("experiments", experiment_name, "agents"))
-	end
-	if !("graphs" in readdir(joinpath("experiments", experiment_name)))
-		mkdir(joinpath("experiments", experiment_name, "graphs"))
-	end
-	return true
-end
-
 function export_graphs(;
 	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
 	path::String
@@ -66,7 +50,7 @@ function export_agentdata(;
 	networkprops::Dict
 )
 	for key in keys(experiment[1])
-		reshape_df!(experiment[1][key])
+		join_cultures!(experiment[1][key])
 	end
 	if exportmode == "aggregated"
 		export_aggregated(
@@ -90,43 +74,14 @@ function export_agentdata(;
 	end
 end
 
-function reshape_df!(dataframe::DataFrames.DataFrame)
-	dataframe[!, "Culture"] = [join(c) for c in dataframe[!, "CultureTmp"]]
-	select!(dataframe, DataFrames.Not(:CultureTmp))
-	return dataframe
-end
-
 function export_aggregated(;
 	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
 	path::String,
 	stubborncount::Int64,
 	networkprops::Dict
 )
-	agentdata_dict = experiment[1]
-	aggregated_dataframe = DataFrames.DataFrame(
-		Rep = Int64[],
-		Size = Int64[],
-		Culture = String[]
-	)
-	for key in keys(agentdata_dict)
-		replicate_dataframe = agentdata_dict[key]
-		finaltick = filter(
-			:TickNr => ==(maximum(replicate_dataframe[!, "TickNr"])),
-			replicate_dataframe
-		)
-		replicate = key
-		unique_cultures = unique(finaltick[!, "Culture"])
-		for culture in unique_cultures
-			size = sum([c == culture for c in finaltick[!, "Culture"]])
-			row = (replicate, size, culture)
-			push!(aggregated_dataframe, row)
-		end
-	end
-	aggregated_dataframe[!, "StubbornCount"] .= stubborncount
-	for key in keys(networkprops)
-		varname = to_camelcase(key)
-		aggregated_dataframe[!, varname] .= networkprops[key]
-	end
+	agentdata_array = experiment[1]
+	aggregated_dataframe = aggregate_data(agentdata_array, stubborncount, networkprops)
 	Feather.write(
 		joinpath(path, "agents", "adata.feather"),
 		aggregated_dataframe
@@ -138,12 +93,11 @@ function export_separate_dataframes(;
 	experiment::Union{Tuple{Any, Any}, Tuple{Any, Any, Any}},
 	path::String
 )
-	agentdata_dict = experiment[1]
-	for key in keys(agentdata_dict)
-		replicate_dataframe = agentdata_dict[key]
+	agentdata_array = experiment[1]
+	for (replicate, agent_dataframe) in enumerate(agentdata_array)
 		Feather.write(
-			joinpath(path, "agents", "adata_rep" * string(key) * ".feather"),
-			replicate_dataframe
+			joinpath(path, "agents", "adata_rep" * string(replicate) * ".feather"),
+			agent_dataframe
 		)
 	end
 	return true
@@ -155,29 +109,11 @@ function export_default(;
 	stubborncount::Int64,
 	networkprops::Dict
 )
-	agentdata_dict = experiment[1]
-	full_dataframe = DataFrames.DataFrame(
-		Replicate = Int64[],
-		TickNr = Int64[],
-		AgentID = Int64[],
-		Culture = String[]
-	)
-	for key in keys(agentdata_dict)
-		replicate_dataframe = agentdata_dict[key]
-		replicate_dataframe[!, "Replicate"] .= key
-		append!(
-			full_dataframe,
-			replicate_dataframe
-		)
-	end
-	full_dataframe[!, "StubbornCount"] .= stubborncount
-	for key in keys(networkprops)
-		varname = to_camelcase(key)
-		full_dataframe[!, varname] .= networkprops[key]
-	end
+	agentdata_array = experiment[1]
+	agent_dataframe = reduce(vcat, agentdata_array)
 	Feather.write(
 		joinpath(path, "agents", "adata.feather"),
-		full_dataframe
+		agent_dataframe
 	)
 	return true
 end

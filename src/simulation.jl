@@ -6,7 +6,7 @@ function run_experiment(;
     networkprops::Dict,
     stubborncount::Int64,
     rndseed::Int64,
-    repcount::Int64,
+    n_replicates::Int64,
     export_every_n::Int64,
     exportdata::Bool,
     exportmode::String,
@@ -20,7 +20,7 @@ function run_experiment(;
         networkprops=networkprops,
         stubborncount=stubborncount,
         rndseed=rndseed,
-        repcount=repcount,
+        n_replicates=n_replicates,
         export_every_n=export_every_n,
 		keep_rawnet=keep_rawnet
     )
@@ -44,37 +44,44 @@ function run(;
 	networkprops::Dict=Dict(),
 	stubborncount::Int64=0,
 	rndseed::Int64=1,
-	repcount::Int64=1,
+	n_replicates::Int64=1,
 	export_every_n::Int64=100,
 	keep_rawnet::Bool=false
 )
+	agentcount, nettopology, networkprops, stubborncount = assert_input_parameters(
+		agentcount,
+		nettopology,
+		networkprops,
+		stubborncount
+	)
 	Random.seed!(Random.MersenneTwister(rndseed))
 	networks = Dict{Int64, LightGraphs.AbstractGraph}()
 	networks_raw = Dict{Int64, LightGraphs.AbstractGraph}()
-	agentdata = Dict{Int64, DataFrames.DataFrame}()
-	init_progressbar(repcount, experiment_name)
-	for rep in 1:repcount
+	agentdata_array = DataFrames.DataFrame[]
+	init_progressbar(n_replicates, experiment_name)
+	for replicate in 1:n_replicates
 		agents = create_agents(agentcount, stubborncount)
 		network = create_network(nettopology, agentcount, networkprops)
-		agentdf = init_agentdf(agents)
+		agent_dataframe = init_agentdf(agents)
 		for ticknr in 1:n_iter
 			tick!(agents, network)
 			if ticknr % export_every_n == 0
-				append_state!(agentdf, agents, ticknr)
+				append_state!(agent_dataframe, agents, ticknr)
 			end
 		end
-		agentdata[rep] = agentdf
+		add_constant_parameters!(agent_dataframe, networkprops, stubborncount, replicate)
+		push!(agentdata_array, deepcopy(agent_dataframe))
 		if keep_rawnet
-			networks_raw[rep] = deepcopy(network)
-			networks[rep] = prune_network!(network, agents)
+			networks_raw[replicate] = deepcopy(network)
+			networks[replicate] = prune_network!(network, agents)
 		else
-			networks[rep] = network
+			networks[replicate] = network
 		end
-		update_progressbar(rep, repcount)
+		update_progressbar(replicate, n_replicates)
 	end
 	if keep_rawnet
-		return (agentdata, networks, networks_raw)
+		return (agentdata_array, networks, networks_raw)
 	else
-		return (agentdata, networks)
+		return (agentdata_array, networks)
 	end
 end
