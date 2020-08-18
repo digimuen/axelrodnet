@@ -1,10 +1,7 @@
 mutable struct Agent
-
-    cultureVector::AbstractArray
-    socialbot::Bool
-
-    function Agent(cultureVector, socialbot=false)
-        new(cultureVector, socialbot)
-    end
-
+    id::Int64
+    culture::AbstractArray
+    stubborn::Bool
 end
+
+Agent(id, culture) = Agent(id, culture, false)

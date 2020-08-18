@@ -13,12 +13,14 @@ library(tidyverse)
 library(arrow)
 library(igraph)
 library(stringdist)
+library(magrittr)
 source("helpers.R")
 
 ```
 
+## Setup and Preprocessing
 
-```{r read-ba-data}
+```{r read-data}
 
 grid_data <- read_adata("grid", "experiments")
 ws_data <- read_adata("wattsstrogatz", "experiments")
@@ -26,300 +28,201 @@ ba_data <- read_adata("barabasialbert", "experiments")
 
 ```
 
-```{r region-analysis}
-
-test_data <- grid_data %>% filter(Rep == 1)
-
-test_data %>%
-  filter(Rep == 1) %>% 
-  filter(TickNr == 100000) %>%  
-  group_by(Culture) %>% 
-  summarize(count = n()) %>% 
-  ungroup() -> test_region_count
-
-read_delim(
-  file.path("data", "TESTRUN", "data", "graphs", "rep_1.txt"), 
-  delim = ",",
-  col_names = FALSE
-) %>% 
-  as.matrix() %>% 
-  graph_from_edgelist(directed = FALSE) -> graph_test_0
-
-test_data %>%
-  filter(Rep == 1) %>% 
-  filter(TickNr == 1000000) %>% 
-  filter(SocialBotFrac == 0.00) -> tmp
-
-rownames(tmp) <- tmp$AgentID
-
-edgelist <- E(graph_test_0)
-delete_list <- c()
-for (idx in 1:length(edgelist)) {
-  nodes <- ends(graph_test_0, edgelist[idx])
-  a <- tmp$Culture[nodes[1]]
-  b <- tmp$Culture[nodes[2]]
-  if (stringdist(a, b, method = "hamming") == 5) {
-    delete_list <- delete_list %>% append(idx)
-  }
-}
-
-graph_test_0 %>% 
-  delete.edges(delete_list) -> graph_test_0_filtered
-
-comps <- components(graph_test_0_filtered)
-
-test_region_count %>% dim() 
-comps$no
-
-plot(graph_test_0_filtered, size = 0, label = NA)
-
-```
-
-```{r}
-
-df %>% 
-  group_by(SocialBotFrac) %>% 
-  summarise(n_part = n() / 3) -> df_reg_count
-
-df_reg_count$SocialBotFrac <- as.numeric(as.character(df_reg_count$SocialBotFrac))
-
-df_reg_count %>% 
-  ggplot(aes(x = SocialBotFrac, y = n_part)) +
-  geom_bar(stat = "identity", alpha = 0.8, fill = "navy") +
-  scale_x_continuous(
-    breaks = seq(0.00, 0.20, 0.01)
-  ) +
-  labs(
-    x = "Fraction of Stubborn Agents",
-    y = "Average Number of Regions",
-    title = "Fragmentation in Barabási-Albert Graphs"
-  ) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    panel.border = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    axis.line = element_line(color = "black")
-  )
-
-
-```
-
-```{r}
-
-df %>% 
-  group_by(SocialBotFrac, Rep) %>% 
-  summarise(max_reg = max(Size)) -> df_big_reg
-
-df_big_reg$max_reg <- as.numeric(df_big_reg$max_reg)
-
-df_big_reg %>% 
-  group_by(SocialBotFrac) %>% 
-  summarize(avg_max_reg = mean(max_reg)) -> df_big_reg
-
-df_big_reg$SocialBotFrac <- as.numeric(as.character(df_big_reg$SocialBotFrac))
-
-df_big_reg %>% 
-  ggplot(aes(x = SocialBotFrac, y = avg_max_reg)) +
-  geom_bar(stat = "identity", alpha = 0.8, fill = "navy") +
-  scale_x_continuous(
-    breaks = seq(0.00, 0.20, 0.01)
-  ) +
-  labs(
-    x = "Fraction of Stubborn Agents",
-    y = "Average Size of Biggest Region",
-    title = "Mean Size of Biggest Region in Barabási-Albert Graphs"
-  ) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    panel.border = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    axis.line = element_line(color = "black")
-  )
-
-```
-
-```{r}
-
-df %>% 
-  filter(SocialBotFrac == 0.2) %>% 
-  arrange(desc(Size))
-
-```
-
-```{r}
-
-df %>% 
-  filter(Rep == 1, SocialBotFrac == 0.15) %>% 
-  group_by(Size) %>% 
-  summarise(c = n())
-
-
-```
-
-```{r}
-
-df2 <- tibble(
-  Rep=integer(0), 
-  Size=integer(0), 
-  Culture=character(0), 
-  SocialBotFrac=double(0),
-  grid_height=integer(0)
-)
-
-grid_runs <- grep("grid", list.files("data"), value = TRUE) 
-
-for (run in grid_runs) {
-  df2 %>% 
-    rbind(
-      arrow::read_feather(
-        file.path("data", run, "data", "agents", "adata.feather")
-      )
-    ) -> df2
-}
-
-```
-
-```{r}
-
-df2 %>% 
-  group_by(SocialBotFrac) %>% 
-  summarise(n_part = n() / 3) -> df2_reg_count
-
-df2_reg_count$SocialBotFrac <- as.numeric(as.character(df2_reg_count$SocialBotFrac))
-
-df2_reg_count %>% 
-  ggplot(aes(x = SocialBotFrac, y = n_part)) +
-  geom_bar(stat = "identity", alpha = 0.8, fill = "navy") +
-  scale_x_continuous(
-    breaks = seq(0.00, 0.20, 0.01)
-  ) +
-  labs(
-    x = "Fraction of Stubborn Agents",
-    y = "Average Number of Regions",
-    title = "Fragmentation in Grid Graphs"
-  ) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    panel.border = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    axis.line = element_line(color = "black")
-  )
-
-```
-
-```{r}
-
-df2 %>% 
-  group_by(SocialBotFrac, Rep) %>% 
-  summarise(max_reg = max(Size)) -> df2_big_reg
-
-df2_big_reg$max_reg <- as.numeric(df2_big_reg$max_reg)
-
-df2_big_reg %>% 
-  group_by(SocialBotFrac) %>% 
-  summarize(avg_max_reg = mean(max_reg)) -> df2_big_reg
-
-df2_big_reg$SocialBotFrac <- as.numeric(as.character(df2_big_reg$SocialBotFrac))
-
-df2_big_reg %>% 
-  ggplot(aes(x = SocialBotFrac, y = avg_max_reg)) +
-  geom_bar(stat = "identity", alpha = 0.8, fill = "navy") +
-  scale_x_continuous(
-    breaks = seq(0.00, 0.20, 0.01)
-  ) +
-  labs(
-    x = "Fraction of Stubborn Agents",
-    y = "Average Size of Biggest Region",
-    title = "Mean Size of Biggest Region in Grid Graphs"
-  ) +
-  theme_bw() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    panel.border = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    axis.line = element_line(color = "black")
-  )
-
-```
-
-```{r}
-
-df2 %>% tail()
-
-```
-
-
-```{r}
-
-grid_data %>% 
-  filter(Rep == 1) %>% 
-  filter(SocialBotFrac == 0.15) %>% 
-  filter(TickNr == 100000) %>% 
-  group_by(Culture) %>% 
-  summarize(n = n()) %>% 
-  ungroup() 
-
-```
-
-
-```{r}
-
-grid_data %>% 
-  filter(Culture == "00000") %>%
-  filter(TickNr == 1000000) %>% 
-  group_by(SocialBotFrac) %>% 
-  summarize(n = n() / 1000) %>% 
-  ggplot(aes(x = SocialBotFrac, y = n)) +
-  geom_line()
-
-```
-
-
-```{r}
-
-grid_data %>% 
-  filter(SocialBotFrac == 0.15) %>% 
-  filter(TickNr == 100000) %>%
-  filter(Rep == 4) %>% 
-  group_by(Culture) %>% 
-  summarize(n = n())
-
-```
-
-
-```{r}
-ws_data
-```
-
-
-```{r}
-
+```{r format-data}
+
+grid_data$Rep <- as.numeric(grid_data$Rep)
+grid_data$TickNr <- as.numeric(grid_data$TickNr)
+grid_data$AgentID <- as.numeric(grid_data$AgentID)
+grid_data$grid_height <- as.numeric(grid_data$grid_height)
+
+ws_data$Rep <- as.numeric(ws_data$Rep)
+ws_data$TickNr <- as.numeric(ws_data$TickNr)
+ws_data$AgentID <- as.numeric(ws_data$AgentID)
+ws_data$k <- as.factor(ws_data$k)
 ws_data$beta <- as.factor(ws_data$beta)
 
-ws_data %>% 
-  filter(Culture == "00000") %>% 
-  filter(TickNr == 100000) %>% 
-  group_by(SocialBotFrac, beta) %>% 
-  summarize(n = n() / 1000) %>% 
-  ggplot(aes(x = SocialBotFrac, y = n)) +
-  geom_line() +
-  facet_wrap(~ beta)
+ba_data$Rep <- as.numeric(ba_data$Rep)
+ba_data$TickNr <- as.numeric(ba_data$TickNr)
+ba_data$AgentID <- as.numeric(ba_data$AgentID)
+ba_data$m0 <- as.factor(ba_data$m0)
 
 ```
 
+## Unique Cultures by Fraction of Stubborn Agents
 
-```{r}
+### Grid Data
+
+```{r reformat-grid-data}
+
+grid_data %>% 
+  filter(TickNr == max(grid_data$TickNr)) %>%
+  group_by(Rep, SocialBotFrac) %>%
+  summarise(unique_cultures = n_distinct(Culture)) %>%
+  ungroup() %>% 
+  group_by(SocialBotFrac) %>% 
+  summarise(
+    avg_unique_cultures = mean(unique_cultures),
+    se_unique_cultures = se(unique_cultures)
+  ) -> grid_data_unique_cultures
+
+grid_data %>% 
+  filter(TickNr == max(grid_data$TickNr)) %>% 
+  group_by(Rep, SocialBotFrac) %>%
+  summarise(unique_cultures = n_distinct(Culture)) -> grid_data_unique_cultures_plotting
+
+grid_data_unique_cultures_plotting$SocialBotFrac %<>% as.factor()
+
+```
+
+```{r grid-data-unique-cultures-boxplot}
+
+grid_data_unique_cultures_plotting %>% 
+  ggplot(aes(x = SocialBotFrac, y = unique_cultures)) +
+  geom_boxplot()
+
+```
+
+```{r grid-data-unique-cultures-barplot}
+
+grid_data_unique_cultures %>% 
+  ggplot(aes(x = as.factor(SocialBotFrac), y = avg_unique_cultures)) +
+  geom_bar(stat = "identity", fill= "navyblue", alpha = 0.8) +
+  geom_errorbar(
+    aes(
+      ymin = avg_unique_cultures - se_unique_cultures,
+      ymax = avg_unique_cultures + se_unique_cultures
+    ),
+    width = 0.5
+  ) +
+  scale_y_continuous(breaks = 0:8) +
+  theme_bw() +
+  labs(
+    title = "Average Unique Cultures by Fraction of Stubborn Agents",
+    x = "Fraction of Stubborn Agents",
+    y = "Average Number of Unique Cultures"
+  ) +
+  theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+  )
+
+```
+
+### Barabási-Albert Data
+
+```{r reformat-ba-data}
 
 ba_data %>% 
-  filter(Culture == "00000") %>% 
-  filter(TickNr == 100000) %>% 
+  filter(TickNr == max(ba_data$TickNr)) %>%
+  group_by(Rep, SocialBotFrac) %>%
+  summarise(unique_cultures = n_distinct(Culture)) %>%
+  ungroup() %>% 
   group_by(SocialBotFrac) %>% 
-  summarize(n = n() / 1000) %>% 
-  ggplot(aes(x = SocialBotFrac, y = n)) +
-  geom_line()
+  summarise(
+    avg_unique_cultures = mean(unique_cultures),
+    se_unique_cultures = se(unique_cultures)
+  ) -> ba_data_unique_cultures
+
+ba_data %>% 
+  filter(TickNr == max(ba_data$TickNr)) %>% 
+  group_by(Rep, SocialBotFrac) %>%
+  summarise(unique_cultures = n_distinct(Culture)) -> ba_data_unique_cultures_plotting
+
+ba_data_unique_cultures_plotting$SocialBotFrac %<>% as.factor()
+
+```
+
+```{r ba-data-unique-cultures-boxplot}
+
+ba_data_unique_cultures_plotting %>% 
+  ggplot(aes(x = SocialBotFrac, y = unique_cultures)) +
+  geom_boxplot()
+
+```
+
+```{r ba-data-unique-cultures-barplot}
+
+ba_data_unique_cultures %>% 
+  ggplot(aes(x = as.factor(SocialBotFrac), y = avg_unique_cultures)) +
+  geom_bar(stat = "identity", fill= "navyblue", alpha = 0.8) +
+  geom_errorbar(
+    aes(
+      ymin = avg_unique_cultures - se_unique_cultures,
+      ymax = avg_unique_cultures + se_unique_cultures
+    ),
+    width = 0.5
+  ) +
+  scale_y_continuous(breaks = 0:8) +
+  theme_bw() +
+  labs(
+    title = "Average Unique Cultures by Fraction of Stubborn Agents",
+    x = "Fraction of Stubborn Agents",
+    y = "Average Number of Unique Cultures"
+  ) +
+  theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+  )
+
+```
+
+### Watts-Strogatz Data
+
+```{r reformat-ws-data}
+
+ws_data %>% 
+  filter(TickNr == max(ws_data$TickNr)) %>%
+  group_by(Rep, SocialBotFrac, beta) %>%
+  summarise(unique_cultures = n_distinct(Culture)) %>%
+  ungroup() %>% 
+  group_by(SocialBotFrac, beta) %>% 
+  summarise(
+    avg_unique_cultures = mean(unique_cultures),
+    se_unique_cultures = se(unique_cultures)
+  ) -> ws_data_unique_cultures
+
+ws_data %>% 
+  filter(TickNr == max(ws_data$TickNr)) %>% 
+  group_by(Rep, SocialBotFrac, beta) %>%
+  summarise(unique_cultures = n_distinct(Culture)) -> ws_data_unique_cultures_plotting
+
+ws_data_unique_cultures_plotting$SocialBotFrac %<>% as.factor()
+ws_data_unique_cultures_plotting$beta %<>% as.factor()
+
+ws_data_unique_cultures %<>%
+  mutate(beta = paste0("beta = ", beta))
+
+```
+
+```{r ws-data-unique-cultures-boxplot}
+
+ws_data_unique_cultures_plotting %>% 
+  ggplot(aes(x = SocialBotFrac, y = unique_cultures)) +
+  geom_boxplot() +
+  facet_grid(beta ~ .)
+
+```
+
+```{r ws-data-unique-cultures-barplot}
+
+ws_data_unique_cultures %>% 
+  ggplot(aes(x = as.factor(SocialBotFrac), y = avg_unique_cultures)) +
+  geom_bar(stat = "identity", fill= "navyblue", alpha = 0.8) +
+  geom_errorbar(
+    aes(
+      ymin = avg_unique_cultures - se_unique_cultures,
+      ymax = avg_unique_cultures + se_unique_cultures
+    ),
+    width = 0.5
+  ) +
+  facet_grid(beta ~ .) +
+  theme_bw() +
+  labs(
+    title = "Average Unique Cultures by Fraction of Stubborn Agents",
+    x = "Fraction of Stubborn Agents",
+    y = "Average Number of Unique Cultures"
+  ) +
+  theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)
+  )
 
 ```
 

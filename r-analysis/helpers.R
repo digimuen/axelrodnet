@@ -17,7 +17,9 @@ read_adata <- function(network, path) {
   return(df)
 }
 
-
+se <- function(x) {
+  return(sd(x) / sqrt(length(x)))
+}
 
  
 
