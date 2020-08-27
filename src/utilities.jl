@@ -29,17 +29,17 @@ function prune_network!(
 	network::LightGraphs.AbstractGraph,
 	agents::AbstractArray
 )
-	edges_to_remove = Array{Edge, 1}()
+	edges_to_remove = Array{Tuple, 1}()
 	for agent_id in LightGraphs.vertices(network)
 		for neighbor_id in LightGraphs.neighbors(network, agent_id)
 			similarity = compute_similarity(agents[agent_id], agents[neighbor_id])
 			if similarity == 0
-				push!(edges_to_remove, LightGraphs.Edge(agent_id, neighbor_id))
+				push!(edges_to_remove, (agent_id, neighbor_id))
 			end
 		end
 	end
 	for edge in edges_to_remove
-		LightGraphs.rem_edge!(network, edge)
+		LightGraphs.rem_edge!(network, edge[1], edge[2])
 	end
 	return network
 end

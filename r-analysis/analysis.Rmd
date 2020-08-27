@@ -1,0 +1,78 @@
+---
+title: "Analysis"
+author: "Patrick Halbach, Johannes Nakayama"
+date: "27 8 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(magrittr)
+library(arrow)
+library(igraph)
+```
+
+```{r}
+df <- arrow::read_feather(
+  file.path("experiments", "grid_sc0", "agents", "adata.feather")
+)
+```
+
+```{r}
+graph <- igraph::read_graph(
+  file.path("experiments", "grid_sc0", "graphs", "rep_01.gml"),
+  format = "gml"
+)
+```
+
+```{r}
+gsize(graph)
+```
+
+```{r}
+df$TickNr %<>% as.numeric()
+df$AgentID %<>% as.factor()
+df$StubbornCount %<>% as.numeric()
+df$GridHeight %<>% as.numeric()
+df$Replicate %<>% as.numeric()
+df$Culture %<>% as.factor()
+```
+
+```{r unique-cultures}
+df %>% 
+  filter(Replicate == 1) %>% 
+  filter(TickNr == max(TickNr)) %>% 
+  select(Culture) %>%
+  unique() %>% 
+  # summarize(UniqueCultures = n()) %>% 
+  identity()
+```
+
+```{r seperate-components}
+components(graph)$no
+```
+
+
+```{r}
+
+```
+
+
+## Measurements
+
+independent:
+  * stubborn count [numeric]
+  * network type [factor]: 
+    * ("grid", "barabasi-albert", "watts-strogatz-0.05", "watts-strogatz-0.10", "watts-strogatz-0.15", "watts-strogatz-0.20")
+
+dependent:
+  * unique cultures [numeric]
+  * seperate components [numeric]
+  * size of biggest component [numeric]
+  * distribution of dimension values / excess zeros: simulated value - expected value (number of dimension values divided by 10) [numeric]
+  
+
+
+
+
