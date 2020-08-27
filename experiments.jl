@@ -9,9 +9,9 @@ for sc in 0:20
         networkprops=Dict("grid_height" => 10),
         stubborncount=sc,
         rndseed=1,
-        repcount=10,
+        n_replicates=10,
         export_every_n=1_000_000,
-        export_experiment=true,
+        exportdata=true,
         exportmode="default",
         keep_rawnet=false
     )
@@ -26,9 +26,9 @@ for sc in 0:20, beta in 0.1:0.1:0.5
         networkprops=Dict("k" => 10, "beta" => beta),
         stubborncount=sc,
         rndseed=1,
-        repcount=10,
+        n_replicates=10,
         export_every_n=1_000_000,
-        export_experiment=true,
+        exportdata=true,
         exportmode="default",
         keep_rawnet=false
     )
@@ -43,9 +43,9 @@ for sc in 0:20
         networkprops=Dict("m0" => 10),
         stubborncount=sc,
         rndseed=1,
-        repcount=10,
+        n_replicates=10,
         export_every_n=1_000_000,
-        export_experiment=true,
+        exportdata=true,
         exportmode="default",
         keep_rawnet=false
     )
