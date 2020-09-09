@@ -16,6 +16,21 @@ Axelrodnet.run_experiment(
 )
 
 Axelrodnet.run_experiment(
+    experiment_name="test_run_watts_strogatz",
+    agentcount=100,
+    n_iter=5_000_000,
+    nettopology="watts_strogatz",
+    networkprops=Dict("k" => 10, "beta" => 0.5),
+    stubborncount=0,
+    rndseed=0,
+    n_replicates=10,
+    export_every_n=1_000_000,
+    exportdata=true,
+    exportmode="default",
+    keep_rawnet=false
+)
+
+Axelrodnet.run_experiment(
     experiment_name="test_run_grid",
     agentcount=100,
     n_iter=1_000_000,
@@ -59,3 +74,5 @@ Axelrodnet.run_experiment(
     exportmode="aggregated",
     keep_rawnet=true
 )
+
+Axelrodnet.aggregate_all_experiments("experiments", write_data=true)

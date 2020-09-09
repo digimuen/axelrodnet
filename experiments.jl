@@ -50,3 +50,5 @@ for sc in 0:3:30
         keep_rawnet=false
     )
 end
+
+Axelrodnet.aggregate_all_experiments("experiments", write_data=true)

@@ -8,10 +8,13 @@ module Axelrodnet
     using ParserCombinator
     using REPL
     using StatsBase
+    using Query
 
     export run_experiment
     export run
     export export_experiment
+    export aggregate_experiment
+    export aggregate_all_experiments
 
     include("agent.jl")
     include("assert.jl")
@@ -20,5 +23,6 @@ module Axelrodnet
     include("network.jl")
     include("utilities.jl")
     include("simulation.jl")
+    include("aggregate.jl")
 
 end
