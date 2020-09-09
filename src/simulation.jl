@@ -77,7 +77,7 @@ function run(;
 			networks_raw[replicate] = deepcopy(network)
 			networks[replicate] = prune_network!(network, agents)
 		else
-			networks[replicate] = network
+			networks[replicate] = prune_network!(network, agents)
 		end
 		update_progressbar(replicate, n_replicates)
 	end
