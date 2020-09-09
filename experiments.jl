@@ -19,7 +19,7 @@ end
 
 for sc in 0:3:30, beta in 0.05:0.05:0.2
     Axelrodnet.run_experiment(
-        experiment_name="wattsstrogatz_sc" * string(sc) * "_beta" * string(trunc(Int, beta * 10)),
+        experiment_name="wattsstrogatz_sc" * string(sc) * "_beta" * lpad(trunc(Int, beta * 100), 2, "0"),
         agentcount=100,
         n_iter=5_000_000,
         nettopology="watts_strogatz",
