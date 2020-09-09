@@ -3,6 +3,21 @@ include(joinpath("src", "axelrodnet.jl"))
 Axelrodnet.run_experiment(
     experiment_name="test_run_grid",
     agentcount=100,
+    n_iter=5_000_000,
+    nettopology="grid",
+    networkprops=Dict("grid_height" => 10),
+    stubborncount=0,
+    rndseed=0,
+    n_replicates=10,
+    export_every_n=1_000_000,
+    exportdata=true,
+    exportmode="default",
+    keep_rawnet=false
+)
+
+Axelrodnet.run_experiment(
+    experiment_name="test_run_grid",
+    agentcount=100,
     n_iter=1_000_000,
     nettopology="grid",
     networkprops=Dict("grid_heit" => 10),

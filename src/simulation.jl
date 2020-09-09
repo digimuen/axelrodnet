@@ -71,7 +71,7 @@ function run(;
 				append_state!(agent_dataframe, agents, ticknr)
 			end
 		end
-		add_constant_parameters!(agent_dataframe, networkprops, stubborncount, replicate)
+		add_constant_parameters!(agent_dataframe, networkprops, stubborncount, replicate, nettopology)
 		push!(agentdata_array, deepcopy(agent_dataframe))
 		if keep_rawnet
 			networks_raw[replicate] = deepcopy(network)
