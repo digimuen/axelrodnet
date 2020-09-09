@@ -72,10 +72,12 @@ function add_constant_parameters!(
 	dataframe::DataFrames.DataFrame,
 	networkprops::Dict,
 	stubborncount::Int64,
-	replicate::Int64
+	replicate::Int64,
+	nettopology::String
 )
 	add_constant_parameters!(dataframe, networkprops, stubborncount)
 	dataframe[!, "Replicate"] .= replicate
+	dataframe[!, "NetworkType"] .= nettopology
 end
 
 function add_constant_parameters!(
